@@ -1,0 +1,30 @@
+{
+  "name": "flashcard-hafalan",
+  "version": "19.0.0",
+  "description": "Belajar & menghafal dengan flashcard FSRS, jadwal belajar, ujian, tugas, Pomodoro, serta fitur Al-Qur'an, hadits & ibadah harian.",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit && node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "flashcard",
+    "fsrs",
+    "spaced-repetition",
+    "quran",
+    "hafalan"
+  ],
+  "author": "Ahmad Wirawan",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
+    "obsidian": "^1.14.4",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "fflate": "^0.8.2"
+  }
+}

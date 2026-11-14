@@ -1,0 +1,48 @@
+# Membuat GitHub Release otomatis setiap kali tag versi (mis. 13.1.1) di-push.
+# File yang dilampirkan: main.js, manifest.json, styles.css — format yang dibutuhkan Obsidian & BRAT.
+name: Rilis plugin
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - name: Pasang dependensi
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Cek versi tag = versi manifest
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          ver=$(node -p "require('./manifest.json').version")
+          if [ "$tag" != "$ver" ]; then
+            echo "::error::Tag ($tag) berbeda dengan versi di manifest.json ($ver)."
+            exit 1
+          fi
+
+      - name: Buat release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" \
+            --title="$tag" \
+            --notes="Lihat CHANGELOG.md untuk daftar perubahan." \
+            main.js manifest.json styles.css

@@ -1,0 +1,15 @@
+Harakat (tasykil) untuk sebagian teks hadits dalam plugin ini diambil dari Open Hadith Data
+https://github.com/mhashim6/Open-Hadith-Data (berasal dari hadith-islamware), berisi 9 kitab hadits berharakat:
+Shahih Bukhari, Shahih Muslim, Sunan Abu Dawud, Jami' at-Tirmidzi, Sunan an-Nasa'i, Sunan Ibnu Majah,
+Al-Muwaththa' Malik, Musnad Ahmad, dan Sunan ad-Darimi.
+
+Lisensi basis data: Open Database License (ODbL) 1.0 — http://opendatacommons.org/licenses/odbl/1.0/
+Lisensi isi: Database Contents License (DbCL) 1.0 — http://opendatacommons.org/licenses/dbcl/1.0/
+
+Cara pemakaian dalam plugin (basis data turunan, juga berlisensi ODbL 1.0):
+- Hanya untuk hadits yang di HadeethEnc.com ditulis tanpa/minim harakat (134 dari 245 hadits).
+- Teks HadeethEnc dicocokkan kata demi kata dengan riwayat di 9 kitab tersebut. Sebuah kata hanya diberi harakat bila
+  hurufnya identik dan berada dalam rangkaian minimal 3 kata yang sama berurutan (untuk riwayat pelengkap: minimal 4 kata,
+  dan kata pertama rangkaian tidak diambil karena harakat akhirnya bisa bergantung pada konteks sebelumnya).
+- Kata yang tidak cocok tetap persis seperti teks HadeethEnc. Teks asli HadeethEnc selalu bisa ditampilkan dengan tombol "Teks asli".
+- Hasil: 132 hadits berhasil diberi harakat (rata-rata 93% kata matan); 3 hadits tetap seperti aslinya.

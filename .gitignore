@@ -1,0 +1,13 @@
+# dependensi & hasil build (main.js dibuat otomatis oleh GitHub Actions saat rilis)
+node_modules/
+main.js
+*.js.map
+
+# data pribadi Obsidian — jangan pernah diunggah
+data.json
+
+# sistem
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
