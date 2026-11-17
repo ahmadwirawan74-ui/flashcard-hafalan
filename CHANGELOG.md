@@ -2,6 +2,57 @@
 
 Catatan perubahan setiap versi, dari yang terbaru.
 
+## 21.0.0 — Materi lengkap untuk SEMUA penyakit SKDI, resep menyesuaikan BB & usia, edukasi pasien
+
+### 🩺 Seluruh penyakit kini punya materi lengkap
+- **Semua 913 penyakit SKDI 2019 + 29 penyakit THT (SKDI 2012)** kini terisi materi — tidak ada lagi penyakit yang hanya berupa nama. Total **769 entri materi** (beberapa baris SKDI yang saling berkaitan digabung dalam satu entri, misalnya talasemia & hemoglobinopati, atau luka bakar derajat 1 & 2 ≤ 10%).
+- Setiap entri berisi: definisi, epidemiologi (konteks Indonesia), etiologi & faktor risiko, klasifikasi, patofisiologi, gambaran klinis, pemeriksaan fisik, diagnosis & pemeriksaan penunjang, diagnosis banding, tata laksana farmakologi & nonfarmakologi, **edukasi pasien**, komplikasi, kriteria rujukan, modul pemeriksaan fisik terkait, obat terkait, dan sumber (PNPK/PPK Kemenkes, IDAI, POGI, PERKENI, PERDOSKI, PERHATI-KL, WHO, NICE, IDSA, dll.).
+- Tingkat 1–2: ringkas dan fokus pada pengenalan & rujukan. Tingkat 3A, 3B, dan 4: lengkap dengan terapi awal/tuntas.
+- Bab forensik & medikolegal (visum et repertum, kekerasan seksual, asfiksia, tenggelam, toksikologi, pemeriksaan jenazah, sertifikat kematian) ditulis sebagai panduan kompetensi.
+
+### 📝 Resep untuk tingkat 3A, 3B & 4
+- **936 set resep** (dewasa dan anak bila relevan), termasuk dosis pertama pra-rujukan untuk kegawatan (sepsis, artritis septik, demam neutropenia, angioedema, luka bakar berat, dll.).
+- **Resep anak dihitung dari BB dan usia**: mesin resep memilih regimen sesuai usia, menolak/memberi peringatan bila usia atau BB di bawah batas regimen (mis. griseofulvin < 2 tahun, ivermektin < 15 kg), membatasi dosis maksimum, dan memberi peringatan volume sirup yang terlalu besar.
+- Dosis tertulis di resep dicocokkan otomatis dengan dosis hitungan mesin; resep yang dosisnya khusus (mis. ITP, JIA, frostbite) ditampilkan statis agar tidak bertentangan.
+
+### 💊 Database obat bertambah menjadi 299 obat
+- ±96 obat baru: sediaan topikal kulit (permetrin, salep 2-4, antijamur, kortikosteroid topikal berbagai potensi, retinoid, keratolitik, silver sulfadiazin), tetes mata/telinga/hidung, MDT kusta (dapson, klofazimin), ARV & obat hepatitis, imunoglobulin & serum (HTIG, rabies, ADS, SABU), vitamin & mineral, hormonal & kontrasepsi, DMARD (metotreksat, sulfasalazin, hidroksiklorokuin), serta sefazolin, pentoksifilin, tamoksifen, dan lainnya.
+
+### 🐞 Perbaikan
+- Formulir resep: kotak centang "Hamil" memakai API DOM standar sehingga formulir selalu tampil lengkap.
+- Beberapa teks dosis resep lama diselaraskan dengan hitungan mesin (asiklovir ensefalitis anak, deksametason croup IM, amoksisilin skarlatina).
+
+## 20.0.0 — Penyakit (SKDI 2019), resep lengkap, pemeriksaan fisik, beranda ringkas & tampilan HP
+
+### 🩺 Halaman baru: Penyakit
+- **54 penyakit dengan materi lengkap**: definisi, epidemiologi, etiologi, klasifikasi, patofisiologi, gambaran klinis, subtipe/varian, diagnosis, pemeriksaan penunjang, patologi, diagnosis banding, tata laksana (farmakologi, nonfarmakologi, edukasi), komplikasi, kriteria rujukan, temuan pemeriksaan fisik, obat terkait, resep, dan sumber.
+- **913 penyakit SKDI 2019** terindeks lengkap dengan tingkat kemampuan (1, 2, 3A, 3B, 4), artinya, dan catatan pribadi. Penyakit yang punya materi lengkap ditandai dan bisa langsung dibuka.
+- Saring per sistem SKDI dan per tingkat kemampuan, cari berdasarkan nama/gejala/obat, favorit, dan **buat flashcard** (`Medis/Penyakit/<nama>.md`).
+- Setiap penyakit terhubung ke **database obat** (dan sebaliknya, halaman obat menampilkan "Dipakai pada penyakit") serta ke modul pemeriksaan fisik.
+
+### 📝 Halaman baru: Resep
+- Resep **lengkap per penyakit** dengan format resep dokter Indonesia: kop dokter (nama, SIP, alamat), kota & tanggal, R/ dengan jumlah angka Romawi, signa singkatan Latin (S 3 dd cth I p.c.), paraf tiap R/, serta Pro/Umur/BB/Alamat.
+- **Resep anak dihitung otomatis dari BB**: dosis dibulatkan ke takaran praktis (½ sendok teh, ½ tablet, 0,1 mL tetes), jumlah botol/tablet dihitung dari lama terapi, dan otomatis menjadi **puyer (m.f. pulv. dtd)** bila pecahan tablet tidak praktis.
+- Salin resep, simpan ke catatan (`Medis/Resep/`), cek interaksi obat dalam resep, dan daftar arti singkatan resep.
+
+### 🔍 Halaman baru: Pemeriksaan fisik
+- 13 modul langkah demi langkah (umum & tanda vital, kardiovaskular, respirasi, abdomen, neurologi, muskuloskeletal, endokrin, kulit, mata, THT, obstetri, anak, GCS) dengan cara melakukan, temuan abnormal beserta maknanya, mutiara klinis, keterampilan SKDI terkait, dan daftar centang yang tersimpan.
+
+### 🏠 Beranda ringkas
+- Beranda baru yang singkat: **Study** (Belajar, Rencana belajar, Wawasan, Game), **Ibadah** (sholat berikutnya, Al-Qur'an, Mutaba'ah, Dzikir), dan **Medis** (cari obat/penyakit, Penyakit, Resep, Kalkulator, Obat). Beranda lengkap tetap ada lewat tombol *Tampilan lengkap*.
+
+### 📱 Tampilan HP & menu samping
+- Di HP (Android) menu samping kini menjadi **laci yang tersembunyi**; buka dengan tombol ☰ di bilah atas, tutup dengan mengetuk area gelap atau setelah memilih menu.
+- Di layar lebar menu samping bisa **diringkas jadi ikon saja** (tombol di samping logo).
+- Huruf, ikon, tab, dan bentuk diperkecil di layar sempit (termasuk tema Retro dan Lounge) agar mudah dibaca dan diketuk.
+
+### 🐞 Perbaikan
+- **Kalkulator dosis dewasa tidak bisa diklik**: data pasien selalu ditimpa ulang setiap kali halaman dibuka sehingga pilihan Dewasa/Anak dan isian hilang. Kini tersimpan dengan benar.
+- **Perkiraan BB dari usia** kini otomatis (APLS, sampai usia 17 tahun) di kalkulator dosis dan kartu darurat; begitu BB diketik manual, perkiraan berhenti, dan bisa diaktifkan lagi dengan satu ketukan.
+- Tombol salin tidak lagi gagal di perangkat yang memblokir akses papan klip.
+
+> Sumber: CURRENT Medical Diagnosis & Treatment 2026, Macleod's Clinical Examination 15th ed. (2024), dan SKDI 2019 (KKI). Daftar THT tidak ada di berkas SKDI 2019, sehingga OMA dan rinitis alergi memakai tingkat SKDI 2012. Semua teks ditulis ulang dalam bahasa Indonesia; dosis disesuaikan dengan pedoman nasional. Tetap verifikasi dengan pedoman terbaru dan kondisi pasien.
+
 ## 19.0.0 — Medis diperluas: 203 obat, data BNF 85, farmakologi, antidot & kuis
 
 ### 💊 Database obat: 112 → 203 obat (510 regimen dosis)

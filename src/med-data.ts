@@ -86,10 +86,13 @@ export const CATS: { id: string; name: string; icon: string; color: string }[] =
 	{ id: "darurat", name: "Kegawatdaruratan & antidot", icon: "🚑", color: "#e11d48" },
 	{ id: "obgyn", name: "Obstetri, urologi & hormon", icon: "🤰", color: "#ec4899" },
 	{ id: "nutrisi", name: "Vitamin, mineral & cairan", icon: "💧", color: "#06b6d4" },
+	{ id: "topikal", name: "Kulit, mata & THT (topikal)", icon: "🧴", color: "#84cc16" },
+	{ id: "imun", name: "Reumatologi & imunologi", icon: "🛡️", color: "#64748b" },
 ];
 
 import { A, C, LACT_OK, PREG_SAFE, drop, fx, inj, kap, kg, kgd, syr, tab, tx } from "./med-helpers";
 import { DRUGS2 } from "./med-data2";
+import { DRUGS3 } from "./med-data3";
 import { BNF_TAGS } from "./med-bnf";
 
 // ================================================================ DATA
@@ -1721,7 +1724,7 @@ const EDU: Record<string, string[]> = {
 	sertralin: ["Efek penuh muncul 4–6 minggu; jangan berhenti mendadak.", "Laporkan bila muncul pikiran menyakiti diri."],
 };
 
-export const DRUGS: Drug[] = [...BASE, ...DRUGS2].map((d) => ({ ...d, tags: [...new Set([...d.tags, ...(BNF_TAGS[d.id] ?? [])])], edu: d.edu ?? EDU[d.id] }));
+export const DRUGS: Drug[] = [...BASE, ...DRUGS2, ...DRUGS3].map((d) => ({ ...d, tags: [...new Set([...d.tags, ...(BNF_TAGS[d.id] ?? [])])], edu: d.edu ?? EDU[d.id] }));
 
 // ================================================================ INTERAKSI
 export type Sev = "kontra" | "mayor" | "moderat" | "minor";

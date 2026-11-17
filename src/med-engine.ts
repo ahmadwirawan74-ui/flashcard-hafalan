@@ -1,8 +1,8 @@
 import { DRUGS, DUPE, Drug, IX, IxRule, Prep, Reg, Sev } from "./med-data";
 import { BNF_EN, BNF_IX, BNF_TXT } from "./med-bnf";
 
-export interface Patient { type: "anak" | "dewasa"; w: number; ageY: number; ageM: number; h: number; sex: "L" | "P"; scr: number; preg: boolean; lact: boolean }
-export const DEFAULT_PT: Patient = { type: "anak", w: 15, ageY: 4, ageM: 0, h: 0, sex: "L", scr: 0, preg: false, lact: false };
+export interface Patient { type: "anak" | "dewasa"; w: number; ageY: number; ageM: number; h: number; sex: "L" | "P"; scr: number; preg: boolean; lact: boolean; /** BB berasal dari perkiraan usia (bukan ditimbang). */ wAuto?: boolean }
+export const DEFAULT_PT: Patient = { type: "anak", w: 16, ageY: 4, ageM: 0, h: 0, sex: "L", scr: 0, preg: false, lact: false, wAuto: true };
 export const ageMonths = (p: Patient) => Math.max(0, (p.ageY || 0) * 12 + (p.ageM || 0));
 
 // ---------------------------------------------------------------- angka
@@ -293,11 +293,13 @@ export function holliday(w: number) {
 	return { day, hr };
 }
 /** Perkiraan berat anak dari usia (APLS). */
+/** Perkiraan BB anak dari usia (rumus APLS; > 12 tahun hanya perkiraan kasar). */
 export function apls(months: number) {
 	if (months < 12) return months / 2 + 4;
 	const y = months / 12;
 	if (y <= 5) return 2 * y + 8;
 	if (y <= 12) return 3 * y + 7;
+	if (y < 18) return Math.min(3 * y + 7, 60); // perkiraan kasar remaja (di luar rentang APLS)
 	return NaN;
 }
 export function gfrStage(g: number) {

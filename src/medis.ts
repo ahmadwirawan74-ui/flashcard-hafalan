@@ -7,20 +7,44 @@ import {
 	ibw, isRate, ixOf, num, patientAlerts, perKgUnit, pick, range, regText, renalOf, schwartz, searchDrugs, signa, SEV_ORDER, RATE,
 } from "./med-engine";
 import { BNF_EN } from "./med-bnf";
+import { DEFAULT_DOC, DocInfo, RxPatient } from "./med-rx";
 import { DRUGS2 } from "./med-data2";
 import { CLASSES } from "./med-ref";
+import { DISEASES } from "./med-dis";
+import { openDisease } from "./medis3";
 import { classOfDrug, moreTools, openClass } from "./medis2";
 import { btn } from "./util";
 import { play } from "./sound";
 
 // ================================================================ state
-export interface MedState { fav: string[]; recent: string[]; notes: Record<string, string>; custom: Drug[]; pt: Patient; inter: string[]; quiz?: { best: number; played: number; correct: number; total: number; streak: number } }
+export interface MedState { fav: string[]; recent: string[]; notes: Record<string, string>; custom: Drug[]; pt: Patient; inter: string[]; quiz?: { best: number; played: number; correct: number; total: number; streak: number }; doc?: DocInfo; rxPt?: RxPatient; disFav?: string[] }
+/** Salin teks ke clipboard dengan cadangan bila izin clipboard ditolak (mis. di Android/WebView). */
+export function copyText(txt: string, msg = "Disalin") {
+	const fallback = () => {
+		const ta = document.body.createEl("textarea");
+		ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+		ta.select();
+		let ok = false;
+		try { ok = document.execCommand("copy"); } catch { ok = false; }
+		ta.remove();
+		new Notice(ok ? msg : "Gagal menyalin — blok teks lalu salin manual.");
+	};
+	try {
+		if (!navigator.clipboard?.writeText) return fallback();
+		navigator.clipboard.writeText(txt).then(() => new Notice(msg), fallback);
+	} catch { fallback(); }
+}
+
 export function med(p: FlashcardPlugin): MedState {
 	const d = p.data;
 	d.med ??= { fav: [], recent: [], notes: {}, custom: [], pt: { ...DEFAULT_PT }, inter: [] };
 	const m = d.med;
-	m.fav ??= []; m.recent ??= []; m.notes ??= {}; m.custom ??= []; m.inter ??= []; m.quiz ??= { best: 0, played: 0, correct: 0, total: 0, streak: 0 };
-	m.pt = { ...DEFAULT_PT, ...(m.pt ?? {}) };
+	m.fav ??= []; m.recent ??= []; m.notes ??= {}; m.custom ??= []; m.inter ??= []; m.quiz ??= { best: 0, played: 0, correct: 0, total: 0, streak: 0 }; m.doc ??= { ...DEFAULT_DOC }; m.rxPt ??= { name: "", age: "", w: "", addr: "", type: "dewasa" }; m.disFav ??= [];
+	// Lengkapi kunci yang hilang TANPA mengganti objek (objek pt dipegang oleh halaman yang sedang tampil;
+	// mengganti objeknya membuat perubahan seperti pilihan Anak/Dewasa hilang).
+	if (!m.pt) m.pt = { ...DEFAULT_PT };
+	else if (m.pt.wAuto === undefined) m.pt.wAuto = false;
+	if (m.pt) for (const k of Object.keys(DEFAULT_PT) as (keyof Patient)[]) if (m.pt[k] === undefined) (m.pt as unknown as Record<string, unknown>)[k] = DEFAULT_PT[k];
 	return m;
 }
 export const allDrugs = (p: FlashcardPlugin): Drug[] => [...DRUGS, ...med(p).custom.map((d) => ({ ...d, custom: true }))];
@@ -169,6 +193,9 @@ export function renderMedHome(hub: HubView, el: HTMLElement) {
 	// pintasan
 	const quick = el.createDiv("fch-md-quick");
 	const qt = (icon: string, t: string, s: string, color: string, go: () => void) => { const b = quick.createEl("button", { cls: "fch-md-qtile" }); b.style.setProperty("--c", color); b.createDiv({ cls: "fch-md-qtile-ic", text: icon }); b.createDiv({ cls: "fch-strong", text: t }); b.createDiv({ cls: "fch-small fch-muted", text: s }); b.onclick = go; };
+	qt("🩺", "Penyakit", `${DISEASES.length} materi lengkap · SKDI 2019`, "#16a34a", () => hub.navigate("medpenyakit"));
+	qt("📝", "Resep", "Resep lengkap per penyakit", "#0ea5e9", () => hub.navigate("medresep"));
+	qt("🫀", "Pemeriksaan fisik", "Langkah per sistem (Macleod)", "#e11d48", () => hub.navigate("medpf"));
 	qt("🧮", "Kalkulator dosis", "Dewasa & anak, mL/tablet, resep", "#0d9488", () => hub.navigate("medcalc"));
 	qt("⚡", "Cek interaksi", `${m.inter.length ? m.inter.length + " obat di daftar" : "Polifarmasi, duplikasi"}`, "#f59e0b", () => hub.navigate("medinter"));
 	qt("🚑", "Kartu darurat", "Resusitasi anak berdasarkan BB", "#e11d48", () => hub.navigate("medemerg"));
@@ -291,7 +318,7 @@ function renderDetail(hub: HubView, el: HTMLElement, d: Drug) {
 		tabs.querySelectorAll(".fch-md-tab").forEach((x, i) => x.toggleClass("is-on", T[i][0] === tab));
 		body.empty();
 		body.removeClass("is-in"); void body.offsetWidth; body.addClass("is-in");
-		if (tab === "ring") tabRingkasan(body, d);
+		if (tab === "ring") tabRingkasan(body, d, hub);
 		else if (tab === "dosis") tabDosis(hub, body, d);
 		else if (tab === "aman") tabAman(body, d);
 		else if (tab === "ix") tabIx(hub, body, d);
@@ -303,7 +330,7 @@ function renderDetail(hub: HubView, el: HTMLElement, d: Drug) {
 }
 const prepIcon = (p: Prep) => ({ tab: "💊", kap: "💊", syr: "🧴", drop: "💧", inj: "💉", neb: "🌫️", inf: "🩸", supp: "🔻", lain: "📦" } as const)[p.form];
 
-function tabRingkasan(el: HTMLElement, d: Drug) {
+function tabRingkasan(el: HTMLElement, d: Drug, hub: HubView) {
 	const g = el.createDiv("fch-md-two");
 	list(section(g, "🎯", "Indikasi"), d.ind);
 	const how = section(g, "🧭", "Cara penggunaan");
@@ -313,6 +340,12 @@ function tabRingkasan(el: HTMLElement, d: Drug) {
 	if (d.antidote) section(g, "🧯", "Antidot / tata laksana toksisitas", "is-teal").createDiv({ cls: "fch-md-p", text: d.antidote });
 	if (d.tips?.length) list(section(g, "💡", "Tips klinis", "is-amber"), d.tips);
 	if (d.edu?.length) list(section(g, "🗣️", "Edukasi pasien", "is-teal"), d.edu);
+	const dz = DISEASES.filter((x) => x.drugs.includes(d.id) || x.rx.some((r) => r.items.some((i) => i.d === d.id)));
+	if (dz.length) {
+		const s2 = section(g, "🩺", "Dipakai pada penyakit");
+		const w = s2.createDiv("fch-dz-links");
+		for (const x of dz) { const b = w.createEl("button", { cls: "fch-md-rchip is-link", text: x.name }); b.onclick = () => openDisease(hub, x.id, "tx"); }
+	}
 	const ci = section(g, "⛔", "Kontraindikasi (ringkas)", "is-red");
 	list(ci, d.ci.slice(0, 4));
 }
@@ -435,11 +468,42 @@ export function renderMedCalc(hub: HubView, el: HTMLElement) {
 	const ph = pc.createDiv("fch-md-card-h");
 	ph.createSpan({ cls: "fch-md-card-ic", text: pt.type === "anak" ? "🧒" : "🧑" });
 	ph.createSpan({ cls: "fch-md-card-t", text: "Data pasien" });
-	seg(pc, [["anak", "🧒 Anak"], ["dewasa", "🧑 Dewasa"]], pt.type, (v) => { pt.type = v; C.reg = -1; save(); window.setTimeout(() => hub.renderPage(), 220); }, "fch-md-ptseg");
+	seg(pc, [["anak", "🧒 Anak"], ["dewasa", "🧑 Dewasa"]], pt.type, (v) => {
+		if (pt.type === v) return;
+		pt.type = v;
+		if (v === "dewasa") {
+			if (pt.ageY < 18) pt.ageY = 30;
+			pt.ageM = 0;
+			if (pt.wAuto || pt.w < 30) { pt.w = 60; pt.wAuto = false; }
+		} else {
+			if (pt.ageY >= 18) { pt.ageY = 4; pt.ageM = 0; }
+			pt.wAuto = true;
+			autoW();
+		}
+		C.reg = -1; save(); window.setTimeout(() => hub.renderPage(), 220);
+	}, "fch-md-ptseg");
 	const f1 = pc.createDiv("fch-md-row");
-	field(f1, "Berat badan", pt.w, (v) => { pt.w = toNum(v); save(); derived(); drawRes(); }, { suffix: "kg" });
-	field(f1, "Usia", pt.ageY, (v) => { pt.ageY = toNum(v); save(); derived(); drawRes(); }, { suffix: "th" });
-	if (pt.type === "anak") field(f1, " ", pt.ageM, (v) => { pt.ageM = toNum(v); save(); derived(); drawRes(); }, { suffix: "bl" });
+	const wIn = field(f1, "Berat badan", pt.w, (v) => { pt.w = toNum(v); pt.wAuto = false; wHint(); save(); derived(); drawRes(); }, { suffix: "kg" });
+	/** Anak: BB otomatis diperkirakan dari usia selama belum diisi manual. */
+	const autoW = () => {
+		if (pt.type !== "anak" || !pt.wAuto) return;
+		const w = apls(ageMonths(pt));
+		if (!isFinite(w)) return;
+		pt.w = Math.round(w * 10) / 10;
+		if (wIn) wIn.value = String(pt.w);
+		wHint();
+	};
+	const onAge = () => { autoW(); save(); derived(); drawRes(); };
+	field(f1, "Usia", pt.ageY, (v) => { pt.ageY = toNum(v); onAge(); }, { suffix: "th" });
+	if (pt.type === "anak") field(f1, " ", pt.ageM, (v) => { pt.ageM = toNum(v); onAge(); }, { suffix: "bl" });
+	const wNote = pc.createDiv("fch-md-wnote");
+	const wHint = () => {
+		wNote.empty();
+		if (pt.type !== "anak") return;
+		if (pt.wAuto) wNote.setText(`⚖️ BB ${num(pt.w)} kg = perkiraan dari usia (APLS${ageMonths(pt) > 144 ? ", kasar untuk > 12 th" : ""}). Ketik BB hasil timbang untuk mengganti.`);
+		else { wNote.setText("⚖️ BB diisi manual. "); const a = wNote.createEl("a", { text: "Pakai perkiraan dari usia", href: "#" }); a.onclick = (e) => { e.preventDefault(); pt.wAuto = true; autoW(); save(); derived(); drawRes(); }; }
+	};
+	wHint();
 	const f2 = pc.createDiv("fch-md-row");
 	field(f2, "Tinggi", pt.h, (v) => { pt.h = toNum(v); save(); derived(); drawRes(); }, { suffix: "cm" });
 	field(f2, "Kreatinin", pt.scr, (v) => { pt.scr = toNum(v); save(); derived(); drawRes(); }, { suffix: "mg/dL" });
@@ -450,7 +514,7 @@ export function renderMedCalc(hub: HubView, el: HTMLElement) {
 		tg("preg", "🤰 Hamil");
 		tg("lact", "🤱 Menyusui");
 	} else {
-		btn(f3, { text: "Perkiraan BB dari usia", icon: "sparkles", cls: "fch-btn-sm", onClick: () => { const w = apls(ageMonths(pt)); if (!isFinite(w)) return void new Notice("Rumus APLS untuk usia 0–12 tahun."); pt.w = Math.round(w * 10) / 10; save(); hub.renderPage(); new Notice(`Perkiraan BB (APLS): ${num(pt.w)} kg. Timbang bila memungkinkan.`); } });
+		btn(f3, { text: "Perkiraan BB dari usia", icon: "sparkles", cls: "fch-btn-sm", onClick: () => { const w = apls(ageMonths(pt)); if (!isFinite(w)) return void new Notice("Perkiraan BB tersedia untuk usia 0–17 tahun."); pt.wAuto = true; autoW(); save(); derived(); drawRes(); new Notice(`Perkiraan BB: ${num(pt.w)} kg. Timbang bila memungkinkan.`); } });
 	}
 	const der = pc.createDiv("fch-md-derived");
 	const derived = () => {
@@ -601,7 +665,7 @@ export function renderMedCalc(hub: HubView, el: HTMLElement) {
 			sh.createSpan({ cls: "fch-md-card-t", text: "Resep (draf)" });
 			const txt = signa(d, r, pr, per);
 			sg.createEl("pre", { cls: "fch-md-rxpre", text: txt });
-			btn(sg, { text: "Salin", icon: "copy", cls: "fch-btn-sm", onClick: () => { void navigator.clipboard?.writeText(txt); new Notice("Resep disalin"); } });
+			btn(sg, { text: "Salin", icon: "copy", cls: "fch-btn-sm", onClick: () => copyText(txt, "Resep disalin") });
 		}
 		alerts(res);
 	};
@@ -975,19 +1039,21 @@ export function renderMedTools(hub: HubView, el: HTMLElement) {
 export function renderMedEmerg(hub: HubView, el: HTMLElement) {
 	const p = hub.plugin;
 	const pt = med(p).pt;
-	const s = { w: pt.type === "anak" && pt.w ? pt.w : 15, m: pt.type === "anak" ? ageMonths(pt) : 48 };
+	const s = { w: pt.type === "anak" && pt.w ? pt.w : 16, m: pt.type === "anak" ? ageMonths(pt) : 48, auto: pt.type !== "anak" || !!pt.wAuto };
 	hero(el, "Kartu Darurat Anak", "Dosis resusitasi, kejang, anafilaksis, energi defibrilasi, dan ukuran ETT, otomatis dari berat badan (PALS/APLS).", "🚑");
 	const ctl = el.createDiv("fch-md-card fch-md-emctl");
 	const row = ctl.createDiv("fch-md-row fch-md-row-c");
-	const wIn = field(row, "Berat badan", s.w, (v) => { s.w = toNum(v); draw(); }, { suffix: "kg" });
-	field(row, "Usia", Math.floor(s.m / 12), (v) => { s.m = toNum(v) * 12; draw(); }, { suffix: "tahun" });
-	btn(row, { text: "BB dari usia (APLS)", icon: "sparkles", cls: "fch-btn-sm", onClick: () => { const w = apls(s.m); if (isFinite(w)) { s.w = Math.round(w * 10) / 10; wIn.value = String(s.w); draw(); } } });
+	const wIn = field(row, "Berat badan", s.w, (v) => { s.w = toNum(v); s.auto = false; draw(); }, { suffix: "kg" });
+	const autoW = () => { if (!s.auto) return; const w = apls(s.m); if (isFinite(w)) { s.w = Math.round(w * 10) / 10; wIn.value = String(s.w); } };
+	field(row, "Usia", Math.round((s.m / 12) * 10) / 10, (v) => { s.m = Math.round(toNum(v) * 12); autoW(); draw(); }, { suffix: "tahun", step: "0.5" });
+	btn(row, { text: "BB dari usia (APLS)", icon: "sparkles", cls: "fch-btn-sm", onClick: () => { s.auto = true; autoW(); draw(); } });
 	const big = ctl.createDiv("fch-md-embig");
 	const out = el.createDiv("fch-md-em");
 	type Row = [string, string, number, number | null, string, string?];
 	const draw = () => {
 		big.empty(); out.empty();
 		big.createDiv({ cls: "fch-md-embig-v", text: `${num(s.w)} kg` });
+		if (s.auto) big.createDiv({ cls: "fch-small fch-muted", text: "BB = perkiraan dari usia (APLS). Ketik BB hasil timbang bila ada." });
 		big.createDiv({ cls: "fch-small", text: `Usia ${num(s.m / 12)} tahun · ETT tanpa cuff ${num(s.m / 12 / 4 + 4)} · dengan cuff ${num(s.m / 12 / 4 + 3.5)} · kedalaman bibir ${num((s.m / 12 / 4 + 4) * 3)} cm` });
 		if (!(s.w > 0)) return;
 		const w = s.w;

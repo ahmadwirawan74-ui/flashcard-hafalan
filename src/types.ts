@@ -59,6 +59,10 @@ export interface Settings {
 	taskReminders: boolean;
 	classReminder: number;
 	homeLayout: { id: string; on: boolean }[];
+	/** Beranda ringkas (Study · Ibadah · Medis) */
+	homeSimple: boolean;
+	/** Sembunyikan menu samping di layar sempit (HP) */
+	navCollapsed: boolean;
 	homeCollapsed: string[];
 	statusBar: Record<string, boolean>;
 	checklist: boolean;
@@ -116,6 +120,8 @@ export const DEFAULT_SETTINGS: Settings = {
 	taskReminders: true,
 	classReminder: 10,
 	homeLayout: [],
+	homeSimple: true,
+	navCollapsed: false,
 	homeCollapsed: [],
 	statusBar: { cards: true, tasks: true, pomo: true, classes: true, quran: true, menu: true },
 	checklist: true,

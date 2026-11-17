@@ -1,6 +1,6 @@
 {
   "name": "flashcard-hafalan",
-  "version": "19.0.0",
+  "version": "21.0.0",
   "description": "Belajar & menghafal dengan flashcard FSRS, jadwal belajar, ujian, tugas, Pomodoro, serta fitur Al-Qur'an, hadits & ibadah harian.",
   "scripts": {
     "dev": "node esbuild.config.mjs",

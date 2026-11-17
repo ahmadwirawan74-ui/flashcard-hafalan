@@ -31,6 +31,7 @@ import { renderBossHall, weeklyBoss } from "./boss";
 import { renderDungeon } from "./dungeon";
 import { renderMedCalc, renderMedEmerg, renderMedHome, renderMedInter, renderMedTools } from "./medis";
 import { renderMedClass, renderMedQuiz, renderMedTox } from "./medis2";
+import { renderMedDisease, renderMedPf, renderMedRx } from "./medis3";
 import { renderShop } from "./gear";
 import { RECIPES, canCraft, discovered, renderAlchemy } from "./alchemy";
 import { activeEvent, bossDoneToday, claimable, renderEvents } from "./events";
@@ -54,7 +55,7 @@ import { TIERS, Unlock, medal } from "./achievements";
 import { btn, ring } from "./util";
 
 export const HUB_VIEW = "flashcard-hub";
-export type Page = "home" | "study" | "exams" | "reading" | "shop" | "alchemy" | "event" | "golden" | "boss" | "dungeon" | "treasure" | "album" | "quran" | "mutabaah" | "dzikir" | "hadits" | "asmaul" | "ramadan" | "tasks" | "notes" | "planner" | "projects" | "habits" | "grades" | "review" | "focus" | "adventure" | "calendar" | "palace" | "decks" | "create" | "browse" | "fix" | "stats" | "report" | "weak" | "graph" | "mindmap" | "arena" | "awards" | "chain" | "play" | "med" | "medcalc" | "medinter" | "medtools" | "medemerg" | "medclass" | "medtox" | "medquiz";
+export type Page = "home" | "study" | "exams" | "reading" | "shop" | "alchemy" | "event" | "golden" | "boss" | "dungeon" | "treasure" | "album" | "quran" | "mutabaah" | "dzikir" | "hadits" | "asmaul" | "ramadan" | "tasks" | "notes" | "planner" | "projects" | "habits" | "grades" | "review" | "focus" | "adventure" | "calendar" | "palace" | "decks" | "create" | "browse" | "fix" | "stats" | "report" | "weak" | "graph" | "mindmap" | "arena" | "awards" | "chain" | "play" | "med" | "medcalc" | "medinter" | "medtools" | "medemerg" | "medclass" | "medtox" | "medquiz" | "medpenyakit" | "medpf" | "medresep";
 
 /** Metadata setiap halaman: label, ikon, dan penjelasan singkat (dipakai tab & Cari menu). */
 export const PAGES: Partial<Record<Page, { label: string; icon: string; desc: string }>> = {
@@ -106,6 +107,9 @@ export const PAGES: Partial<Record<Page, { label: string; icon: string; desc: st
 	medclass: { label: "Farmakologi", icon: "book-open", desc: "Golongan obat: mekanisme, prototipe, efek samping, mutiara klinis" },
 	medtox: { label: "Antidot", icon: "skull", desc: "Keracunan & antidot, kalkulator N-asetilsistein" },
 	medquiz: { label: "Kuis obat", icon: "target", desc: "Kuis farmakologi otomatis dari database obat" },
+	medpenyakit: { label: "Penyakit", icon: "stethoscope", desc: "Penyakit SKDI 2019: definisi hingga tata laksana & resep" },
+	medpf: { label: "Pemeriksaan fisik", icon: "scan-eye", desc: "Langkah pemeriksaan fisik per sistem (Macleod) & keterampilan SKDI" },
+	medresep: { label: "Resep", icon: "file-text", desc: "Resep lengkap berdasarkan penyakit" },
 };
 
 /** Ruang kerja di menu kiri; halaman-halamannya tampil sebagai tab di bagian atas. */
@@ -116,7 +120,7 @@ export const WORKSPACES: { id: string; label: string; icon: string; color: strin
 	{ id: "ibadah", label: "Ibadah", icon: "moon-star", color: "#10b981", desc: "Al-Qur'an, sholat & dzikir", pages: ["quran", "mutabaah", "dzikir", "hadits", "asmaul", "ramadan"] },
 	{ id: "play", label: "Main", icon: "gamepad-2", color: "#f59e0b", desc: "Game & prestasi", pages: ["arena", "event", "shop", "alchemy", "boss", "dungeon", "treasure", "album", "adventure", "palace", "awards"] },
 	{ id: "insight", label: "Wawasan", icon: "bar-chart-2", color: "#ef4444", desc: "Analitik & refleksi", pages: ["stats", "golden", "report", "weak", "review", "graph", "mindmap"] },
-	{ id: "medis", label: "Medis", icon: "stethoscope", color: "#0d9488", desc: "Obat, dosis & interaksi", pages: ["med", "medcalc", "medinter", "medtools", "medemerg", "medclass", "medtox", "medquiz"] },
+	{ id: "medis", label: "Medis", icon: "stethoscope", color: "#0d9488", desc: "Obat, dosis & interaksi", pages: ["med", "medpenyakit", "medresep", "medpf", "medcalc", "medinter", "medtools", "medemerg", "medclass", "medtox", "medquiz"] },
 ];
 export const wsOf = (page: Page) => WORKSPACES.find((w) => w.pages.includes(page));
 
@@ -177,7 +181,10 @@ export class HubView extends ItemView {
 		root.addClass("fch");
 		this.applySkin();
 		const shell = (this.shellEl = root.createDiv("fch-shell"));
+		shell.toggleClass("is-navmini", !!this.plugin.data.settings.navCollapsed);
 		this.navEl = shell.createDiv("fch-nav");
+		const backdrop = shell.createDiv("fch-nav-backdrop");
+		backdrop.onclick = () => this.setDrawer(false);
 		this.mainEl = shell.createDiv("fch-main");
 		this.toastEl = root.createDiv("fch-toasts");
 		this.register(this.plugin.pomo.subscribe(() => this.renderPomo()) as unknown as () => void);
@@ -196,7 +203,19 @@ export class HubView extends ItemView {
 	private lastIn: Record<string, Page> = {};
 	private lastWs = "home";
 
+	/** Menu samping sebagai laci (layar sempit/HP). */
+	setDrawer(open: boolean) { this.shellEl?.toggleClass("nav-open", open); }
+	/** Menu samping ringkas (hanya ikon) di layar lebar; di HP menutup laci. */
+	toggleNav() {
+		if (this.shellEl?.hasClass("nav-open")) return this.setDrawer(false);
+		const s = this.plugin.data.settings;
+		s.navCollapsed = !s.navCollapsed;
+		this.shellEl?.toggleClass("is-navmini", s.navCollapsed);
+		void this.plugin.saveData(this.plugin.data);
+	}
+
 	navigate(page: Page) {
+		this.setDrawer(false);
 		if (page !== "study") this.limit = null;
 		this.page = page;
 		const ws = wsOf(page);
@@ -226,6 +245,9 @@ export class HubView extends ItemView {
 		const pet = mascotState(this.plugin);
 		brand.createSpan({ cls: `fch-brand-mark mood-${pet.mood}`, text: pet.stage.icon, attr: { "aria-label": `${pet.name}: ${pet.msg}` } });
 		brand.createSpan({ cls: "fch-brand-name", text: "Hafalan" });
+		const col = brand.createEl("button", { cls: "fch-nav-toggle", attr: { "aria-label": "Sembunyikan/tampilkan menu" } });
+		setIcon(col, this.plugin.data.settings.navCollapsed ? "panel-left-open" : "panel-left-close");
+		col.onclick = () => { this.toggleNav(); setIcon(col, this.plugin.data.settings.navCollapsed ? "panel-left-open" : "panel-left-close"); };
 
 		const find = nav.createEl("button", { cls: "fch-find-btn", attr: { "aria-label": "Cari menu & aksi (Ctrl/Cmd+K)" } });
 		setIcon(find.createSpan("fch-nav-ic"), "search");
@@ -297,6 +319,22 @@ export class HubView extends ItemView {
 			case "exams": { const n = p.data.exams.filter((e) => { const d = Math.round((new Date(e.date + "T00:00:00").getTime() - new Date(key + "T00:00:00").getTime()) / 86400000); return d >= 0 && d <= 14; }).length; return n ? { n } : null; }
 			default: return null;
 		}
+	}
+
+	/** Bilah atas khusus layar sempit (HP): tombol menu ☰, judul, dan cari. */
+	private renderMobileTop(el: HTMLElement) {
+		const ws = wsOf(this.page);
+		const bar = el.createDiv("fch-mtop");
+		const menu = bar.createEl("button", { cls: "fch-mtop-btn", attr: { "aria-label": "Buka menu" } });
+		setIcon(menu, "menu");
+		menu.onclick = () => this.setDrawer(!this.shellEl.hasClass("nav-open"));
+		bar.createSpan({ cls: "fch-mtop-title", text: ws?.label ?? PAGES[this.page]?.label ?? "Hafalan" });
+		const home = bar.createEl("button", { cls: "fch-mtop-btn", attr: { "aria-label": "Beranda" } });
+		setIcon(home, "home");
+		home.onclick = () => this.navigate("home");
+		const find = bar.createEl("button", { cls: "fch-mtop-btn", attr: { "aria-label": "Cari menu & aksi" } });
+		setIcon(find, "search");
+		find.onclick = () => this.openFinder();
 	}
 
 	/** Bilah tab ruang kerja + aksi utama, tampil di atas setiap halaman. */
@@ -396,6 +434,7 @@ export class HubView extends ItemView {
 		el.empty();
 		el.scrollTop = 0;
 		if (this.page !== "focus") { this.containerEl.removeClass("fch-zen-focus"); resetZen(); }
+		this.renderMobileTop(el);
 		this.renderWsBar(el);
 		const page = el.createDiv("fch-page fch-page-" + this.page);
 		switch (this.page) {
@@ -459,6 +498,9 @@ export class HubView extends ItemView {
 			case "medclass": return renderMedClass(this, page);
 			case "medtox": return renderMedTox(this, page);
 			case "medquiz": return renderMedQuiz(this, page);
+			case "medpenyakit": return renderMedDisease(this, page);
+			case "medpf": return renderMedPf(this, page);
+			case "medresep": return renderMedRx(this, page);
 		}
 	}
 

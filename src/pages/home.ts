@@ -14,6 +14,7 @@ import { renderQuranPanel } from "../quran";
 import { renderIbadahPanel } from "../ibadah";
 import { renderBlocksPanel } from "../studyplan";
 import { renderAgendaPanel, renderDashHero } from "./home-dash";
+import { renderSimpleHome } from "./home-simple";
 import { renderEventBanner } from "../events";
 import { renderRamadanStrip } from "../ramadan";
 import type FlashcardPlugin from "../main";
@@ -92,7 +93,12 @@ export function renderHome(hub: HubView, el: HTMLElement) {
 	const lv = p.level();
 
 
+	if (s.homeSimple !== false && !editing) return renderSimpleHome(hub, el, () => { s.homeSimple = false; p.requestSave(); hub.renderPage(); });
 	renderDashHero(hub, el, editing, () => { editing = !editing; hub.renderPage(); });
+	{
+		const back = el.createDiv("fch-sh-back");
+		btn(back, { text: "Beranda ringkas", icon: "layout-grid", cls: "fch-btn-ghost fch-btn-sm", onClick: () => { s.homeSimple = true; p.requestSave(); hub.renderPage(); } });
+	}
 	renderEventBanner(hub, el);
 	if (editing) renderLayoutEditor(hub, el);
 
