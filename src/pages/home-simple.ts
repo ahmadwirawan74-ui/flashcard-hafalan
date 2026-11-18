@@ -113,9 +113,9 @@ export function renderSimpleHome(hub: HubView, el: HTMLElement, toFull: () => vo
 		};
 		tiles(md, [
 			{ icon: "🩺", title: "Penyakit", sub: `${DISEASES.length} materi · SKDI 2019`, color: "#16a34a", go: () => hub.navigate("medpenyakit") },
-			{ icon: "📝", title: "Resep", sub: "Per penyakit, dosis anak otomatis", color: "#0ea5e9", go: () => hub.navigate("medresep") },
-			{ icon: "🧮", title: "Kalkulator dosis", sub: "Dewasa & anak", color: "#0d9488", go: () => hub.navigate("medcalc") },
-			{ icon: "💊", title: "Obat", sub: `${DRUGS.length} obat`, color: "#7c3aed", go: () => hub.navigate("med") },
+			{ icon: "💊", title: "Obat", sub: `${DRUGS.length} obat`, color: "#7c3aed", go: () => hub.navigate("medobat") },
+			{ icon: "🫀", title: "Pemeriksaan fisik", sub: "SKDI 2019 · OSCE", color: "#e11d48", go: () => hub.navigate("medpf") },
+			{ icon: "📋", title: "CPPT", sub: "SOAP · ekspor PDF", color: "#0ea5e9", go: () => hub.navigate("medcppt") },
 		]);
 	}
 }

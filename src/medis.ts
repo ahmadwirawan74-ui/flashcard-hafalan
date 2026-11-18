@@ -14,10 +14,12 @@ import { DISEASES } from "./med-dis";
 import { openDisease } from "./medis3";
 import { classOfDrug, moreTools, openClass } from "./medis2";
 import { btn } from "./util";
+import { firstSentence, glance, ibtn } from "./med-ui";
+import { rxPdfDoc, savePdf } from "./med-pdf";
 import { play } from "./sound";
 
 // ================================================================ state
-export interface MedState { fav: string[]; recent: string[]; notes: Record<string, string>; custom: Drug[]; pt: Patient; inter: string[]; quiz?: { best: number; played: number; correct: number; total: number; streak: number }; doc?: DocInfo; rxPt?: RxPatient; disFav?: string[] }
+export interface MedState { fav: string[]; recent: string[]; notes: Record<string, string>; custom: Drug[]; pt: Patient; inter: string[]; quiz?: { best: number; played: number; correct: number; total: number; streak: number }; doc?: DocInfo; rxPt?: RxPatient; disFav?: string[]; disRecent?: string[]; pfDone?: Record<string, number>; pfBest?: Record<string, number> }
 /** Salin teks ke clipboard dengan cadangan bila izin clipboard ditolak (mis. di Android/WebView). */
 export function copyText(txt: string, msg = "Disalin") {
 	const fallback = () => {
@@ -76,7 +78,7 @@ export function openDrug(hub: HubView, id: string) {
 	const m = med(hub.plugin);
 	m.recent = [id, ...m.recent.filter((x) => x !== id)].slice(0, 8);
 	hub.plugin.requestSave();
-	if (hub.page === "med") hub.renderPage(); else hub.navigate("med");
+	if (hub.page === "medobat") hub.renderPage(); else hub.navigate("medobat");
 }
 export function calcDrug(hub: HubView, id: string, regIdx = -1) {
 	C.drug = id; C.reg = regIdx; C.prep = -2; C.t = 0.5; C.conc = 0;
@@ -177,33 +179,18 @@ export function drugPicker(parent: HTMLElement, p: FlashcardPlugin, onPick: (d: 
 }
 
 // ================================================================ 1. DATABASE OBAT
-export function renderMedHome(hub: HubView, el: HTMLElement) {
+export function renderMedDrugs(hub: HubView, el: HTMLElement) {
 	const p = hub.plugin;
 	const m = med(p);
 	if (openId) { const d = drugById(p, openId); if (d) return renderDetail(hub, el, d); openId = null; }
 	const all = allDrugs(p);
-	hero(el, "Medis · Database Obat", "Dosis dewasa & anak, cara pakai, kontraindikasi, keamanan kehamilan, ginjal, dan interaksi untuk setiap obat.", "🩺", (t) => {
-		const st = t.createDiv("fch-md-hero-stats");
-		const s = (v: string, l: string) => { const x = st.createDiv("fch-md-hstat"); x.createDiv({ cls: "fch-md-hstat-v", text: v }); x.createDiv({ cls: "fch-md-hstat-l", text: l }); };
-		s(String(all.length), "obat");
-		s(String(all.reduce((a, d) => a + d.regs.length, 0)), "regimen dosis");
-		s(String(CATS.length), "kategori");
-		s(String(CLASSES.length), "golongan");
-	});
-	// pintasan
-	const quick = el.createDiv("fch-md-quick");
-	const qt = (icon: string, t: string, s: string, color: string, go: () => void) => { const b = quick.createEl("button", { cls: "fch-md-qtile" }); b.style.setProperty("--c", color); b.createDiv({ cls: "fch-md-qtile-ic", text: icon }); b.createDiv({ cls: "fch-strong", text: t }); b.createDiv({ cls: "fch-small fch-muted", text: s }); b.onclick = go; };
-	qt("🩺", "Penyakit", `${DISEASES.length} materi lengkap · SKDI 2019`, "#16a34a", () => hub.navigate("medpenyakit"));
-	qt("📝", "Resep", "Resep lengkap per penyakit", "#0ea5e9", () => hub.navigate("medresep"));
-	qt("🫀", "Pemeriksaan fisik", "Langkah per sistem (Macleod)", "#e11d48", () => hub.navigate("medpf"));
-	qt("🧮", "Kalkulator dosis", "Dewasa & anak, mL/tablet, resep", "#0d9488", () => hub.navigate("medcalc"));
-	qt("⚡", "Cek interaksi", `${m.inter.length ? m.inter.length + " obat di daftar" : "Polifarmasi, duplikasi"}`, "#f59e0b", () => hub.navigate("medinter"));
-	qt("🚑", "Kartu darurat", "Resusitasi anak berdasarkan BB", "#e11d48", () => hub.navigate("medemerg"));
-	qt("📐", "Kalkulator klinis", "CrCl, eGFR, skor, konversi opioid/steroid", "#6366f1", () => hub.navigate("medtools"));
-	qt("📚", "Farmakologi", `${CLASSES.length} golongan: mekanisme & efek samping`, "#8b5cf6", () => hub.navigate("medclass"));
-	qt("☠️", "Antidot & keracunan", "Tata laksana toksikologi + kalkulator NAC", "#475569", () => hub.navigate("medtox"));
-	qt("🎯", "Kuis farmakologi", m.quiz?.best ? `Rekor ${m.quiz.best} · ${m.quiz.played}x main` : "Uji hafalan obat, dapat koin", "#db2777", () => hub.navigate("medquiz"));
-
+	const head = el.createDiv("fch-mx-pagehead");
+	const ht = head.createDiv("fch-grow");
+	ht.createEl("h2", { text: "💊 Obat" });
+	ht.createDiv({ cls: "fch-small fch-muted", text: `${all.length} obat · ${all.reduce((a, d) => a + d.regs.length, 0)} regimen dosis · ${CLASSES.length} golongan` });
+	ibtn(head, "shuffle", "Acak", () => openDrug(hub, all[Math.floor(Math.random() * all.length)].id));
+	ibtn(head, "calculator", "Kalkulator", () => hub.navigate("medcalc"));
+	ibtn(head, "zap", m.inter.length ? `Interaksi (${m.inter.length})` : "Interaksi", () => hub.navigate("medinter"));
 	// pencarian
 	const bar = el.createDiv("fch-md-bar");
 	const box = bar.createDiv("fch-md-search fch-grow");
@@ -307,6 +294,14 @@ function renderDetail(hub: HubView, el: HTMLElement, d: Drug) {
 	}
 	const preps = head.createDiv("fch-md-preps");
 	for (const pr of d.preps) preps.createSpan({ cls: "fch-md-prep", text: prepIcon(pr) + " " + pr.label });
+	const rA = d.regs.find((r) => r.who === "dewasa"), rK = d.regs.find((r) => r.who === "anak");
+	glance(el, [
+		{ icon: "🎯", label: "Indikasi utama", text: d.ind.slice(0, 2).join(" • ") },
+		{ icon: "🧑", label: "Dosis dewasa", text: rA ? `${rA.label}: ${regText(rA)}` : "" },
+		{ icon: "🧒", label: "Dosis anak", text: rK ? `${rK.label}: ${regText(rK)}` : "Tidak ada regimen anak di database" },
+		{ icon: "🤰", label: "Kehamilan", text: firstSentence(d.preg, 120), tone: /kontraindikasi|hindari/i.test(d.preg) ? "is-red" : "" },
+		{ icon: "⛔", label: "Kontraindikasi", text: d.ci.slice(0, 2).join(" • "), tone: "is-red" },
+	]);
 
 	const tabs = el.createDiv("fch-md-tabs");
 	const ixAll = ixOf(d, allDrugs(p));
@@ -665,7 +660,9 @@ export function renderMedCalc(hub: HubView, el: HTMLElement) {
 			sh.createSpan({ cls: "fch-md-card-t", text: "Resep (draf)" });
 			const txt = signa(d, r, pr, per);
 			sg.createEl("pre", { cls: "fch-md-rxpre", text: txt });
-			btn(sg, { text: "Salin", icon: "copy", cls: "fch-btn-sm", onClick: () => copyText(txt, "Resep disalin") });
+			const ra = sg.createDiv("fch-dz-links");
+			btn(ra, { text: "Salin", icon: "copy", cls: "fch-btn-sm", onClick: () => copyText(txt, "Resep disalin") });
+			btn(ra, { text: "Ekspor PDF", icon: "file-down", cls: "fch-btn-sm fch-md-rxpdf", onClick: () => { const [r1, ...rest] = txt.split("\n").map((x) => x.trim()); const mm = med(p); void savePdf(p, rxPdfDoc({ doc: mm.doc!, pa: { ...mm.rxPt!, w: mm.rxPt!.w || (pt.w ? String(pt.w) : ""), age: mm.rxPt!.age || ageText(pt.ageY * 12 + pt.ageM) }, lines: [{ r: r1.replace(/^R\/\s*/, ""), s: rest.join(" · ") }], title: `Kalkulator dosis · ${d.name}`, wText: pt.w ? `${num(pt.w)} kg` : "" }), "Medis/Resep", `Resep ${d.name}`); } });
 		}
 		alerts(res);
 	};

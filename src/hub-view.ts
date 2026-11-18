@@ -29,9 +29,12 @@ import { FinderModal } from "./finder";
 import { renderExams } from "./exams";
 import { renderBossHall, weeklyBoss } from "./boss";
 import { renderDungeon } from "./dungeon";
-import { renderMedCalc, renderMedEmerg, renderMedHome, renderMedInter, renderMedTools } from "./medis";
+import { renderMedCalc, renderMedDrugs, renderMedEmerg, renderMedInter, renderMedTools } from "./medis";
+import { renderMedHome } from "./med-home";
+import { renderMedCppt } from "./med-cppt";
 import { renderMedClass, renderMedQuiz, renderMedTox } from "./medis2";
-import { renderMedDisease, renderMedPf, renderMedRx } from "./medis3";
+import { renderMedDisease, renderMedRx } from "./medis3";
+import { renderMedPf } from "./med-pfui";
 import { renderShop } from "./gear";
 import { RECIPES, canCraft, discovered, renderAlchemy } from "./alchemy";
 import { activeEvent, bossDoneToday, claimable, renderEvents } from "./events";
@@ -55,7 +58,7 @@ import { TIERS, Unlock, medal } from "./achievements";
 import { btn, ring } from "./util";
 
 export const HUB_VIEW = "flashcard-hub";
-export type Page = "home" | "study" | "exams" | "reading" | "shop" | "alchemy" | "event" | "golden" | "boss" | "dungeon" | "treasure" | "album" | "quran" | "mutabaah" | "dzikir" | "hadits" | "asmaul" | "ramadan" | "tasks" | "notes" | "planner" | "projects" | "habits" | "grades" | "review" | "focus" | "adventure" | "calendar" | "palace" | "decks" | "create" | "browse" | "fix" | "stats" | "report" | "weak" | "graph" | "mindmap" | "arena" | "awards" | "chain" | "play" | "med" | "medcalc" | "medinter" | "medtools" | "medemerg" | "medclass" | "medtox" | "medquiz" | "medpenyakit" | "medpf" | "medresep";
+export type Page = "home" | "study" | "exams" | "reading" | "shop" | "alchemy" | "event" | "golden" | "boss" | "dungeon" | "treasure" | "album" | "quran" | "mutabaah" | "dzikir" | "hadits" | "asmaul" | "ramadan" | "tasks" | "notes" | "planner" | "projects" | "habits" | "grades" | "review" | "focus" | "adventure" | "calendar" | "palace" | "decks" | "create" | "browse" | "fix" | "stats" | "report" | "weak" | "graph" | "mindmap" | "arena" | "awards" | "chain" | "play" | "med" | "medcalc" | "medinter" | "medtools" | "medemerg" | "medclass" | "medtox" | "medquiz" | "medpenyakit" | "medpf" | "medresep" | "medobat" | "medcppt";
 
 /** Metadata setiap halaman: label, ikon, dan penjelasan singkat (dipakai tab & Cari menu). */
 export const PAGES: Partial<Record<Page, { label: string; icon: string; desc: string }>> = {
@@ -99,7 +102,9 @@ export const PAGES: Partial<Record<Page, { label: string; icon: string; desc: st
 	review: { label: "Review mingguan", icon: "compass", desc: "Refleksi & rencana minggu depan" },
 	graph: { label: "Peta pengetahuan", icon: "network", desc: "Graf hubungan materi" },
 	mindmap: { label: "Peta pikiran", icon: "git-fork", desc: "Kartu tersusun menurut heading" },
-	med: { label: "Obat", icon: "pill", desc: "Database obat: dosis, cara pakai, kontraindikasi, kehamilan, interaksi" },
+	med: { label: "Beranda Medis", icon: "stethoscope", desc: "Cari apa saja: penyakit, obat, pemeriksaan fisik, CPPT & alat klinis" },
+	medobat: { label: "Obat", icon: "pill", desc: "Database obat: dosis, cara pakai, kontraindikasi, kehamilan, interaksi" },
+	medcppt: { label: "CPPT", icon: "clipboard-list", desc: "Catatan perkembangan pasien (SOAP) dengan tanda vital, tren & ekspor PDF" },
 	medcalc: { label: "Kalkulator dosis", icon: "calculator", desc: "Dosis dewasa & anak berdasarkan BB, usia, ginjal; mL & tablet" },
 	medinter: { label: "Interaksi", icon: "zap", desc: "Cek interaksi & duplikasi beberapa obat sekaligus" },
 	medtools: { label: "Kalkulator klinis", icon: "activity", desc: "CrCl, eGFR, BSA, IMT, cairan, tetesan infus, syringe pump, QTc, GCS, HPL" },
@@ -108,7 +113,7 @@ export const PAGES: Partial<Record<Page, { label: string; icon: string; desc: st
 	medtox: { label: "Antidot", icon: "skull", desc: "Keracunan & antidot, kalkulator N-asetilsistein" },
 	medquiz: { label: "Kuis obat", icon: "target", desc: "Kuis farmakologi otomatis dari database obat" },
 	medpenyakit: { label: "Penyakit", icon: "stethoscope", desc: "Penyakit SKDI 2019: definisi hingga tata laksana & resep" },
-	medpf: { label: "Pemeriksaan fisik", icon: "scan-eye", desc: "Langkah pemeriksaan fisik per sistem (Macleod) & keterampilan SKDI" },
+	medpf: { label: "Pemeriksaan fisik", icon: "scan-eye", desc: "Materi pemeriksaan fisik lengkap sesuai SKDI 2019: langkah, OSCE & temuan abnormal" },
 	medresep: { label: "Resep", icon: "file-text", desc: "Resep lengkap berdasarkan penyakit" },
 };
 
@@ -120,7 +125,7 @@ export const WORKSPACES: { id: string; label: string; icon: string; color: strin
 	{ id: "ibadah", label: "Ibadah", icon: "moon-star", color: "#10b981", desc: "Al-Qur'an, sholat & dzikir", pages: ["quran", "mutabaah", "dzikir", "hadits", "asmaul", "ramadan"] },
 	{ id: "play", label: "Main", icon: "gamepad-2", color: "#f59e0b", desc: "Game & prestasi", pages: ["arena", "event", "shop", "alchemy", "boss", "dungeon", "treasure", "album", "adventure", "palace", "awards"] },
 	{ id: "insight", label: "Wawasan", icon: "bar-chart-2", color: "#ef4444", desc: "Analitik & refleksi", pages: ["stats", "golden", "report", "weak", "review", "graph", "mindmap"] },
-	{ id: "medis", label: "Medis", icon: "stethoscope", color: "#0d9488", desc: "Obat, dosis & interaksi", pages: ["med", "medpenyakit", "medresep", "medpf", "medcalc", "medinter", "medtools", "medemerg", "medclass", "medtox", "medquiz"] },
+	{ id: "medis", label: "Medis", icon: "stethoscope", color: "#0d9488", desc: "Penyakit, obat, PF & CPPT", pages: ["med", "medpenyakit", "medobat", "medpf", "medcppt", "medresep", "medcalc", "medinter", "medtools", "medemerg", "medclass", "medtox", "medquiz"] },
 ];
 export const wsOf = (page: Page) => WORKSPACES.find((w) => w.pages.includes(page));
 
@@ -392,9 +397,9 @@ export class HubView extends ItemView {
 			];
 			case "insight": return [{ text: "Review mingguan", icon: "compass", primary: true, run: () => this.navigate("review") }];
 			case "medis": return [
-				{ text: "Kalkulator dosis", icon: "calculator", primary: true, run: () => this.navigate("medcalc") },
+				{ text: "CPPT", icon: "clipboard-list", primary: true, run: () => this.navigate("medcppt") },
+				{ text: "Kalkulator dosis", icon: "calculator", run: () => this.navigate("medcalc") },
 				{ text: "Cek interaksi", icon: "zap", run: () => this.navigate("medinter") },
-				{ text: "Kuis obat", icon: "target", run: () => this.navigate("medquiz") },
 			];
 			default: return [];
 		}
@@ -491,6 +496,8 @@ export class HubView extends ItemView {
 			case "weak": return renderWeak(this, page);
 			case "graph": return renderGraph(this, page);
 			case "med": return renderMedHome(this, page);
+			case "medobat": return renderMedDrugs(this, page);
+			case "medcppt": return renderMedCppt(this, page);
 			case "medcalc": return renderMedCalc(this, page);
 			case "medinter": return renderMedInter(this, page);
 			case "medtools": return renderMedTools(this, page);

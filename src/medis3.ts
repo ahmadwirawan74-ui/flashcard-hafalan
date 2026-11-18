@@ -12,11 +12,15 @@ import { SKDI_CATS, SKDI_ROWS, SKDI_SKILLS, SKDI_SYS } from "./med-skdi";
 import { copyText, disclaimer, drugById, list, med, openDrug, section } from "./medis";
 import { play } from "./sound";
 import { btn } from "./util";
+import { cpptPrefill } from "./med-cppt";
+import { openPf } from "./med-pfui";
+import { rxPdfDoc, savePdf } from "./med-pdf";
+import { ChipItem, acc, chipRow, firstSentence, glance, heroCard, ibtn, mlist, sysColor } from "./med-ui";
 
 // ================================================================ util
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 const sysOf = (id: string) => SKDI_SYS.find((s) => s.id === id) ?? { id, name: id, icon: "🩺" };
-function lvlBadge(parent: HTMLElement, lvl: string, long = false) {
+export function lvlBadge(parent: HTMLElement, lvl: string, long = false) {
 	const L = LEVELS[lvl] ?? LEVELS["2"];
 	const b = parent.createSpan({ cls: "fch-dz-lvl", text: long ? `SKDI ${lvl} · ${L.short}` : `SKDI ${lvl}` });
 	b.style.setProperty("--c", L.color);
@@ -39,72 +43,65 @@ function searchText(r: SkdiRow): string {
 	if (t === undefined) { t = norm([r.cat, d.def, ...d.klinis, ...d.drugs, ...d.etio.slice(0, 3)].join(" ")); STXT.set(d.id, t); }
 	return t;
 }
-export function openDisease(hub: HubView, id: string, tab = "ringkas") { DZ.skdi = null; DZ.open = id; DZ.tab = tab; if (hub.page === "medpenyakit") hub.renderPage(); else hub.navigate("medpenyakit"); }
+export function openDisease(hub: HubView, id: string, tab = "ringkas") { DZ.skdi = null; DZ.open = id; DZ.tab = tab; const mm = med(hub.plugin); mm.disRecent = [id, ...(mm.disRecent ?? []).filter((x) => x !== id)].slice(0, 12); hub.plugin.requestSave(); if (hub.page === "medpenyakit") hub.renderPage(); else hub.navigate("medpenyakit"); }
 
 // ================================================================ 1. DAFTAR PENYAKIT
+const MODES: ChipItem[] = [{ id: "all", label: "Semua", icon: "✨" }, { id: "fav", label: "Favorit", icon: "★" }, { id: "rx", label: "Punya resep", icon: "📝" }, { id: "note", label: "Catatan saya", icon: "🗒️" }, { id: "recent", label: "Terakhir dibuka", icon: "🕘" }];
 export function renderMedDisease(hub: HubView, el: HTMLElement) {
 	const d = DZ.open ? diseaseById(DZ.open) : undefined;
 	if (d) return diseaseDetail(hub, el, d);
 	if (DZ.skdi) return skdiInfo(hub, el, DZ.skdi);
 	const p = hub.plugin;
 	const m = med(p);
-	const head = el.createDiv("fch-dz-head");
-	head.createEl("h2", { text: "🩺 Penyakit" });
-	head.createDiv({ cls: "fch-small fch-muted", text: `${SKDI_ROWS.length} penyakit SKDI 2019 (+ THT SKDI 2012) · ${DISEASES.length} materi lengkap` });
-	const box = el.createDiv("fch-md-search");
+	const head = el.createDiv("fch-mx-pagehead");
+	const ht = head.createDiv("fch-grow");
+	ht.createEl("h2", { text: "🩺 Penyakit" });
+	ht.createDiv({ cls: "fch-small fch-muted", text: `${SKDI_ROWS.length} penyakit SKDI 2019 (+ THT SKDI 2012) · semuanya bermateri lengkap` });
+	ibtn(head, "shuffle", "Acak", () => { const xs = DISEASES; openDisease(hub, xs[Math.floor(Math.random() * xs.length)].id); }, "fch-dz-rand");
+	const box = el.createDiv("fch-md-search fch-mx-search");
 	box.createSpan({ cls: "fch-md-search-ic", text: "🔎" });
-	const inp = box.createEl("input", { type: "text", cls: "fch-md-search-in", attr: { placeholder: "Cari penyakit, gejala, atau obat… (mis. demam, mengi, amoksisilin)" } });
+	const inp = box.createEl("input", { type: "text", cls: "fch-md-search-in", attr: { placeholder: "Cari penyakit, gejala, ICD, atau obat… (mis. demam, mengi, J18)" } });
 	inp.value = DZ.q;
-	const fl = el.createDiv("fch-dz-filters");
-	const mode = fl.createEl("select", { cls: "dropdown fch-dz-sel" });
-	mode.createEl("option", { text: "Semua penyakit", attr: { value: "all" } });
-	mode.createEl("option", { text: "★ Favorit", attr: { value: "fav" } });
-	mode.createEl("option", { text: "Punya resep", attr: { value: "rx" } });
-	mode.createEl("option", { text: "Ada catatan pribadi", attr: { value: "note" } });
-	mode.value = DZ.mode;
-	const sys = fl.createEl("select", { cls: "dropdown fch-dz-sel" });
-	sys.createEl("option", { text: "Semua sistem", attr: { value: "" } });
-	for (const s of SKDI_SYS) sys.createEl("option", { text: `${s.icon} ${s.name}`, attr: { value: s.id } });
-	sys.value = DZ.sys;
-	const lv = fl.createEl("select", { cls: "dropdown fch-dz-sel" });
-	lv.createEl("option", { text: "Semua tingkat", attr: { value: "" } });
-	for (const k of Object.keys(LEVELS)) lv.createEl("option", { text: `${LEVELS[k].label} — ${LEVELS[k].short}`, attr: { value: k } });
-	lv.value = DZ.lvl;
-	const info = el.createDiv("fch-dz-legend");
-	for (const k of Object.keys(LEVELS)) lvlBadge(info, k);
-	info.createSpan({ cls: "fch-small fch-muted", text: "Ketuk lencana untuk arti tingkat kemampuan" }).onclick = () => new Notice(Object.entries(LEVELS).map(([k, v]) => `${k}: ${v.desc}`).join("\n\n"), 15000);
+	const clr = box.createEl("button", { cls: "fch-mx-clear", text: "✕", attr: { "aria-label": "Hapus" } });
+	clr.onclick = () => { inp.value = ""; DZ.q = ""; draw(); inp.focus(); };
+	const rowsAll = allRows();
+	chipRow(el, MODES, DZ.mode, (v) => { DZ.mode = v; draw(); }, "fch-dz-modes");
+	chipRow(el, [{ id: "", label: "Semua sistem", icon: "🧭", n: rowsAll.length }, ...SKDI_SYS.map((s) => ({ id: s.id, label: s.name.replace(/^Sistem /, ""), icon: s.icon, n: rowsAll.filter((r) => r.sys.id === s.id).length, color: sysColor(s.id) }))], DZ.sys, (v) => { DZ.sys = v; draw(); }, "fch-dz-syss");
+	chipRow(el, [{ id: "", label: "Semua tingkat" }, ...Object.keys(LEVELS).map((k) => ({ id: k, label: `${k} · ${LEVELS[k].short.split(/[(,]/)[0].trim()}`, color: LEVELS[k].color, n: rowsAll.filter((r) => r.lvl === k).length }))], DZ.lvl, (v) => { DZ.lvl = v; draw(); }, "fch-dz-lvls");
 	const listEl = el.createDiv("fch-dz-list");
 	const draw = () => {
 		listEl.empty();
+		clr.toggleClass("is-hidden", !DZ.q);
 		const q = norm(DZ.q);
-		let rows = allRows().filter((r) => (!DZ.sys || r.sys.id === DZ.sys) && (!DZ.lvl || r.lvl === DZ.lvl));
+		let rows = rowsAll.filter((r) => (!DZ.sys || r.sys.id === DZ.sys) && (!DZ.lvl || r.lvl === DZ.lvl));
 		if (DZ.mode === "fav") rows = rows.filter((r) => r.d && m.disFav!.includes(r.d.id));
 		else if (DZ.mode === "rx") rows = rows.filter((r) => r.d?.rx.length);
 		else if (DZ.mode === "note") rows = rows.filter((r) => r.d && (m.notes[`dz:${r.d.id}`] ?? m.notes[`skdi:${r.name}`]));
+		else if (DZ.mode === "recent") { const rec = m.disRecent ?? []; rows = rec.map((id) => rows.find((r) => r.d?.id === id)).filter((r): r is SkdiRow => !!r); }
 		if (q) {
 			const words = q.split(" ");
 			const scored = rows.map((r) => { const nm = norm(r.name + " " + (r.d?.name ?? "") + " " + (r.d?.en ?? "") + " " + (r.d?.icd ?? "")); const all = nm + " " + searchText(r); return { r, s: words.every((w) => nm.includes(w)) ? 2 : words.every((w) => all.includes(w)) ? 1 : 0 }; }).filter((x) => x.s > 0);
 			scored.sort((a, b) => b.s - a.s);
 			rows = scored.map((x) => x.r);
 		}
-		listEl.createDiv({ cls: "fch-small fch-muted", text: `${rows.length} penyakit${q ? " cocok" : ""}` });
-		if (!rows.length) listEl.createDiv({ cls: "fch-md-empty", text: "Tidak ditemukan. Coba kata lain (nama penyakit, gejala, atau obat)." });
+		listEl.createDiv({ cls: "fch-small fch-muted fch-dzl-count", text: `${rows.length} penyakit${q ? " cocok" : ""}` });
+		if (!rows.length) listEl.createDiv({ cls: "fch-md-empty", text: DZ.mode === "fav" ? "Belum ada favorit. Buka penyakit lalu ketuk ☆ Simpan." : "Tidak ditemukan. Coba kata lain (nama penyakit, gejala, atau obat)." });
 		let lastCat = "";
-		for (const r of rows.slice(0, 300)) {
-			if (!q && r.cat !== lastCat) { listEl.createDiv({ cls: "fch-dz-cat", text: `${r.sys.icon} ${r.cat}` }); lastCat = r.cat; }
+		const LIM = 300;
+		for (const r of rows.slice(0, LIM)) {
+			if (!q && DZ.mode !== "recent" && r.cat !== lastCat) { listEl.createDiv({ cls: "fch-dz-cat", text: `${r.sys.icon} ${r.cat}` }); lastCat = r.cat; }
 			const row = listEl.createEl("button", { cls: "fch-dz-row" + (r.d ? " has-full" : " is-skdi") });
+			row.style.setProperty("--c", sysColor(r.sys.id));
+			row.createSpan({ cls: "fch-dz-row-ic", text: r.sys.icon });
 			const t = row.createDiv("fch-grow");
 			t.createDiv({ cls: "fch-dz-row-t", text: (r.d && m.disFav!.includes(r.d.id) ? "★ " : "") + r.name });
-			t.createDiv({ cls: "fch-dz-row-s", text: [r.d?.icd, q ? `${r.sys.icon} ${r.cat}` : "", r.d?.rx.length ? "📝 resep" : "", LEVELS[r.lvl]?.short].filter(Boolean).join(" · ") });
+			t.createDiv({ cls: "fch-dz-row-s", text: [r.d?.icd, q || DZ.mode !== "all" ? r.cat : "", r.d?.rx.length ? "📝 resep" : "", r.d && r.d.name !== r.name ? `↳ ${r.d.name}` : ""].filter(Boolean).join(" · ") });
 			lvlBadge(row, r.lvl);
 			row.onclick = () => { if (r.d) openDisease(hub, r.d.id); else { DZ.skdi = r; hub.renderPage(); } };
 		}
-		if (rows.length > 300) listEl.createDiv({ cls: "fch-small fch-muted", text: `Menampilkan 300 dari ${rows.length}. Persempit dengan pencarian atau filter sistem.` });
+		if (rows.length > LIM) listEl.createDiv({ cls: "fch-small fch-muted", text: `Menampilkan ${LIM} dari ${rows.length}. Persempit dengan pencarian atau pilih sistem.` });
 	};
-	mode.onchange = () => { DZ.mode = mode.value; draw(); };
 	inp.oninput = () => { DZ.q = inp.value; draw(); };
-	sys.onchange = () => { DZ.sys = sys.value; draw(); };
-	lv.onchange = () => { DZ.lvl = lv.value; draw(); };
 	draw();
 	disclaimer(el);
 }
@@ -139,58 +136,101 @@ const TODO: Record<string, string[]> = {
 };
 
 // ================================================================ 2. DETAIL PENYAKIT
-const TABS: [string, string][] = [["ringkas", "Ringkasan"], ["dx", "Diagnosis & PF"], ["tx", "Tata laksana"], ["rx", "Resep"], ["obat", "Obat"], ["src", "Sumber"]];
+const TABS: [string, string, string][] = [["ringkas", "Ringkasan", "📖"], ["dx", "Diagnosis & PF", "🎯"], ["tx", "Tata laksana", "💊"], ["rx", "Resep", "📝"], ["obat", "Obat", "💉"], ["src", "Sumber", "📚"]];
+let MEMO = false;
+/** Urutan penyakit bermateri dalam satu sistem (untuk tombol sebelumnya/berikutnya). */
+function sysSeq(sys: string): Disease[] {
+	const seen = new Set<string>();
+	const out: Disease[] = [];
+	for (const r of allRows()) if (r.d && r.sys.id === sys && !seen.has(r.d.id)) { seen.add(r.d.id); out.push(r.d); }
+	for (const d of DISEASES) if (d.sys === sys && !seen.has(d.id)) { seen.add(d.id); out.push(d); }
+	return out;
+}
+const short = (s: string, n = 110) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
 function diseaseDetail(hub: HubView, el: HTMLElement, d: Disease) {
 	const p = hub.plugin;
 	const m = med(p);
-	const top = el.createDiv("fch-dz-dtop");
+	const sys = sysOf(d.sys);
+	const color = sysColor(d.sys);
+	const seq = sysSeq(d.sys);
+	const at = seq.findIndex((x) => x.id === d.id);
+	const prev = at > 0 ? seq[at - 1] : undefined;
+	const next = at >= 0 && at < seq.length - 1 ? seq[at + 1] : undefined;
+	el.addClass("fch-mx-page");
+	el.toggleClass("fch-mx-memo", MEMO);
+	const top = el.createDiv("fch-dz-dtop fch-mx-top");
 	btn(top, { icon: "arrow-left", text: "Daftar", cls: "fch-btn-ghost fch-btn-sm", onClick: () => { DZ.open = ""; hub.renderPage(); } });
+	const nav = top.createDiv("fch-mx-nav");
+	const pb = ibtn(nav, "chevron-left", prev ? `Sebelumnya: ${prev.name}` : "Sebelumnya", () => prev && openDisease(hub, prev.id, DZ.tab), "fch-mx-only-ic");
+	pb.disabled = !prev;
+	nav.createSpan({ cls: "fch-small fch-muted", text: at >= 0 ? `${at + 1}/${seq.length}` : "" });
+	const nb = ibtn(nav, "chevron-right", next ? `Berikutnya: ${next.name}` : "Berikutnya", () => next && openDisease(hub, next.id, DZ.tab), "fch-mx-only-ic");
+	nb.disabled = !next;
 	top.createDiv("fch-grow");
 	const fav = m.disFav!.includes(d.id);
-	btn(top, { icon: "star", text: fav ? "Favorit" : "Simpan", cls: "fch-btn-sm" + (fav ? " fch-btn-primary" : ""), onClick: () => { m.disFav = fav ? m.disFav!.filter((x) => x !== d.id) : [...m.disFav!, d.id]; p.requestSave(); hub.renderPage(); } });
-	btn(top, { icon: "layers", text: "Flashcard", cls: "fch-btn-sm", onClick: () => void diseaseCards(hub, d) });
-	el.createEl("h2", { cls: "fch-dz-title", text: d.name });
-	const meta = el.createDiv("fch-dz-meta");
-	lvlBadge(meta, d.lvl, true);
-	meta.createSpan({ cls: "fch-small fch-muted", text: [d.en, d.icd ? `ICD-10 ${d.icd}` : "", `${sysOf(d.sys).icon} ${sysOf(d.sys).name}`].filter(Boolean).join(" · ") });
-	const tabs = el.createDiv("fch-dz-tabs");
+	ibtn(top, "star", fav ? "Favorit" : "Simpan", () => { m.disFav = fav ? m.disFav!.filter((x) => x !== d.id) : [...m.disFav!, d.id]; p.requestSave(); hub.renderPage(); }, "fch-dz-fav" + (fav ? " is-on" : ""));
+	ibtn(top, "layers", "Flashcard", () => void diseaseCards(hub, d));
+	ibtn(top, "clipboard-plus", "Pakai di CPPT", () => cpptPrefill(hub, { dx: [{ name: d.name, icd: d.icd ?? "", id: d.id }] }), "fch-dz-tocppt");
+	ibtn(top, MEMO ? "eye" : "eye-off", MEMO ? "Hafalan: aktif" : "Mode hafalan", () => { MEMO = !MEMO; hub.renderPage(); }, "fch-dz-memo" + (MEMO ? " is-on" : ""));
+
+	const { chips } = heroCard(el, { color, emoji: sys.icon, kicker: `${sys.name}${d.icd ? ` · ICD-10 ${d.icd}` : ""}`, title: d.name, titleCls: "fch-dz-title", sub: d.en });
+	lvlBadge(chips, d.lvl, true);
+	if (d.rx.length) chips.createSpan({ cls: "fch-mx-pill", text: `📝 ${d.rx.length} resep` });
+	if (d.pfMod.length) chips.createSpan({ cls: "fch-mx-pill", text: `🩺 PF terarah` });
+	if (MEMO) el.createDiv({ cls: "fch-mx-memo-tip", text: "🧠 Mode hafalan: butir-butir disamarkan. Coba ingat dulu, lalu ketuk butir untuk membukanya." });
+
+	glance(el, [
+		{ icon: "📖", label: "Intinya", text: firstSentence(d.def), tone: "is-wide" },
+		{ icon: "🤒", label: "Klinis kunci", text: d.klinis.slice(0, 2).map((x) => short(x, 80)).join(" • ") },
+		{ icon: "🎯", label: "Diagnosis", text: short(d.dx[0] ?? "") },
+		{ icon: "💊", label: "Terapi utama", text: short(d.farm[0] ?? d.non[0] ?? "") },
+		{ icon: "🚑", label: "Rujuk bila", text: short(d.rujuk?.[0] ?? ""), tone: "is-red" },
+	]);
+
+	const tabs = el.createDiv("fch-dz-tabs fch-mx-tabs");
 	const body = el.createDiv("fch-dz-body");
-	for (const [id, label] of TABS) {
-		const b = tabs.createEl("button", { cls: "fch-dz-tab" + (DZ.tab === id ? " is-on" : ""), text: label });
+	const cnt: Record<string, number> = { rx: d.rx.length, obat: new Set([...d.drugs, ...d.rx.flatMap((r) => r.items.map((i) => i.d).filter(Boolean))]).size };
+	for (const [id, label, ic] of TABS) {
+		const b = tabs.createEl("button", { cls: "fch-dz-tab" + (DZ.tab === id ? " is-on" : "") });
+		b.createSpan({ cls: "fch-mx-tab-ic", text: ic });
+		b.createSpan({ text: label });
+		if (cnt[id]) b.createSpan({ cls: "fch-mx-chip-n", text: String(cnt[id]) });
 		b.onclick = () => { DZ.tab = id; tabs.querySelectorAll(".fch-dz-tab").forEach((x) => x.removeClass("is-on")); b.addClass("is-on"); draw(); };
 	}
 	const draw = () => {
 		body.empty();
-		const sec = (icon: string, title: string, items: string[] | undefined, cls = "") => { if (items?.length) list(section(body, icon, title, cls), items); };
+		const tools = body.createDiv("fch-mx-tools");
+		const sec = (icon: string, title: string, items: string[] | undefined, open = true, tone = "") => { if (items?.length) mlist(acc(body, icon, `${title}`, open, tone), items); };
 		if (DZ.tab === "ringkas") {
-			section(body, "📖", "Definisi", "is-teal").createDiv({ cls: "fch-md-p", text: d.def });
-			sec("🌏", "Epidemiologi", d.epi);
+			const df = acc(body, "📖", "Definisi", true, "is-accent");
+			df.createDiv({ cls: "fch-md-p", text: d.def });
 			sec("🦠", "Etiologi & faktor risiko", d.etio);
-			sec("🗂️", "Klasifikasi", d.klas);
-			sec("⚙️", "Patofisiologi", d.pato);
 			sec("🤒", "Gambaran klinis", d.klinis);
-			sec("🔀", "Subtipe & varian", d.sub);
-			sec("🔬", "Patologi", d.patol);
+			sec("🌏", "Epidemiologi", d.epi, false);
+			sec("🗂️", "Klasifikasi", d.klas, false);
+			sec("⚙️", "Patofisiologi", d.pato, false);
+			sec("🔀", "Subtipe & varian", d.sub, false);
+			sec("🔬", "Patologi", d.patol, false);
 			const rs = rowsOf(d.id);
 			if (rs.length) {
-				const k = section(body, "🎯", "Kompetensi dokter umum (SKDI)");
+				const k = acc(body, "🎯", "Kompetensi dokter umum (SKDI)", false);
 				for (const i of rs) { const r = allRows()[i]; if (!r) continue; const ln = k.createDiv("fch-dz-skrow"); lvlBadge(ln, r.lvl); ln.createSpan({ text: ` ${r.name} — ${LEVELS[r.lvl]?.short ?? ""}${i >= 913 ? " (SKDI 2012)" : ""}` }); }
 				list(k, TODO[d.lvl] ?? []);
 			}
 			const key = `dz:${d.id}`;
-			const nc = section(body, "📝", "Catatan pribadi");
+			const nc = acc(body, "📝", "Catatan pribadi", !!m.notes[key]);
 			const ta = nc.createEl("textarea", { cls: "fch-md-note", attr: { placeholder: "Tambahkan catatan Anda (kasus, tips konsulen, sumber lain)…" } });
 			ta.value = m.notes[key] ?? (rs.map((i) => m.notes[`skdi:${allRows()[i]?.name}`]).find(Boolean) ?? "");
 			ta.oninput = () => { m.notes[key] = ta.value; p.requestSave(); };
 		} else if (DZ.tab === "dx") {
-			sec("🎯", "Diagnosis", d.dx, "is-teal");
-			sec("🧪", "Pemeriksaan penunjang", d.lab);
-			const pf = section(body, "🩺", "Pemeriksaan fisik terarah");
-			list(pf, d.pf);
+			sec("🎯", "Kriteria diagnosis", d.dx, true, "is-accent");
+			const pf = acc(body, "🩺", "Pemeriksaan fisik terarah", true);
+			mlist(pf, d.pf);
 			const links = pf.createDiv("fch-dz-links");
-			for (const id of d.pfMod) { const mod = PF.find((x) => x.id === id); if (!mod) continue; const b = links.createEl("button", { cls: "fch-md-rchip", text: `${mod.icon} Langkah lengkap: ${mod.name}` }); b.onclick = () => openPf(hub, mod.id); }
-			const dd = section(body, "⚖️", "Diagnosis banding");
+			for (const id of d.pfMod) { const mod = PF.find((x) => x.id === id); if (!mod) continue; const b = links.createEl("button", { cls: "fch-md-rchip is-link", text: `${mod.icon} Langkah lengkap: ${mod.name}` }); b.onclick = () => openPf(hub, mod.id); }
+			sec("🧪", "Pemeriksaan penunjang", d.lab);
+			const dd = acc(body, "⚖️", "Diagnosis banding", true);
 			const wrap = dd.createDiv("fch-dz-links");
 			for (const x of d.ddx) {
 				const nx = norm(x);
@@ -199,13 +239,14 @@ function diseaseDetail(hub: HubView, el: HTMLElement, d: Disease) {
 				if (hit) b.onclick = () => openDisease(hub, hit.id, "ringkas");
 			}
 		} else if (DZ.tab === "tx") {
-			sec("💊", "Farmakologi", d.farm, "is-teal");
+			sec("💊", "Farmakologi", d.farm, true, "is-accent");
 			sec("🥗", "Nonfarmakologi", d.non);
 			sec("🗣️", "Edukasi pasien & keluarga", d.edu);
-			sec("⚠️", "Komplikasi", d.komp, "is-amber");
-			sec("🚑", "Kriteria rujukan", d.rujuk, "is-red");
+			sec("⚠️", "Komplikasi", d.komp, true, "is-amber");
+			sec("🚑", "Kriteria rujukan", d.rujuk, true, "is-red");
 			const go = body.createDiv("fch-dz-links");
-			btn(go, { text: "Lihat resep lengkap", icon: "file-text", cls: "fch-btn-primary", onClick: () => { DZ.tab = "rx"; hub.renderPage(); } });
+			if (d.rx.length) btn(go, { text: "Lihat resep lengkap", icon: "file-text", cls: "fch-btn-primary", onClick: () => { DZ.tab = "rx"; hub.renderPage(); } });
+			btn(go, { text: "Pakai di CPPT", icon: "clipboard-plus", onClick: () => cpptPrefill(hub, { dx: [{ name: d.name, icd: d.icd ?? "", id: d.id }], p: [...d.farm.slice(0, 3), ...d.edu.slice(0, 2)].join("\n") }) });
 		} else if (DZ.tab === "rx") {
 			rxPanel(hub, body, d);
 		} else if (DZ.tab === "obat") {
@@ -220,7 +261,7 @@ function diseaseDetail(hub: HubView, el: HTMLElement, d: Disease) {
 			}
 			const ids = [...new Set(d.rx.flatMap((r) => r.items.map((i) => i.d).filter((v): v is string => !!v)))];
 			const ix = checkIx(ids.map((i) => DRUGS.find((y) => y.id === i)!).filter(Boolean));
-			const s = section(body, "⚡", "Interaksi antarobat dalam resep penyakit ini");
+			const s = acc(body, "⚡", "Interaksi antarobat dalam resep penyakit ini", true);
 			const hits = ix.hits.filter((h) => h.rule.sev !== "minor");
 			if (!hits.length) s.createDiv({ cls: "fch-md-p", text: "Tidak ada interaksi mayor/moderat di database." });
 			for (const x of hits.slice(0, 8)) s.createDiv({ cls: "fch-md-p", text: `${x.a.name} + ${x.b.name}: ${x.rule.eff}` });
@@ -228,8 +269,23 @@ function diseaseDetail(hub: HubView, el: HTMLElement, d: Disease) {
 			sec("📚", "Sumber", d.src);
 			body.createDiv({ cls: "fch-small fch-muted", text: "Materi ditulis ulang dengan bahasa sendiri dari CURRENT Medical Diagnosis & Treatment 2026 dan Macleod's Clinical Examination 15th ed., disesuaikan dengan SKDI 2019 dan pedoman nasional. Selalu verifikasi dengan pedoman terbaru." });
 		}
+		const accs = body.querySelectorAll("details.fch-mx-acc");
+		if (accs.length > 1) {
+			ibtn(tools, "chevrons-down-up", "Buka/tutup semua", () => { const anyClosed = [...accs].some((x) => !(x as HTMLDetailsElement).open); accs.forEach((x) => ((x as HTMLDetailsElement).open = anyClosed)); }, "fch-mx-sm");
+			if (MEMO) ibtn(tools, "eye", "Ungkap semua", () => body.querySelectorAll(".fch-mx-list li").forEach((x) => x.addClass("is-shown")), "fch-mx-sm");
+		} else tools.remove();
 	};
 	draw();
+	if (prev || next) {
+		const pn = el.createDiv("fch-mx-prevnext");
+		for (const [x, lbl, cls] of [[prev, "← Sebelumnya", "is-prev"], [next, "Berikutnya →", "is-next"]] as const) {
+			if (!x) { pn.createDiv(); continue; }
+			const b = pn.createEl("button", { cls: "fch-mx-pn " + cls });
+			b.createDiv({ cls: "fch-small fch-muted", text: lbl });
+			b.createDiv({ cls: "fch-strong", text: x.name });
+			b.onclick = () => openDisease(hub, x.id, DZ.tab);
+		}
+	}
 	disclaimer(el);
 }
 
@@ -325,7 +381,9 @@ function rxPanel(hub: HubView, el: HTMLElement, d: Disease) {
 		const act = out.createDiv("fch-dz-links");
 		const txt = rxText(rx, lines, doc, pa);
 		btn(act, { text: "Salin resep", icon: "copy", cls: "fch-btn-primary", onClick: () => copyText(txt, "Resep disalin") });
+		btn(act, { text: "Ekspor PDF", icon: "file-down", cls: "fch-dz-rxpdf", onClick: () => void savePdf(p, rxPdfDoc({ doc, pa, lines, title: rx.label, dx: d.name, note: rx.note, wText: pa.w ? `${pa.w} kg` : wAuto && hasKg ? `± ${num(w)} kg (perkiraan)` : "" }), "Medis/Resep", `Resep ${pa.name || d.name}`) });
 		btn(act, { text: "Simpan ke catatan", icon: "file-plus", onClick: () => void saveRx(hub, d, rx, txt) });
+		btn(act, { text: "Pakai di CPPT", icon: "clipboard-plus", onClick: () => cpptPrefill(hub, { dx: [{ name: d.name, icd: d.icd ?? "", id: d.id }], p: [`${rx.label}:`, ...lines.map((l) => `- R/ ${l.r.replace(/\n/g, " ")} — ${l.s}`)].join("\n") }) });
 		btn(act, { text: "Cek interaksi", icon: "zap", onClick: () => { m.inter = [...new Set(lines.map((l) => l.d?.id).filter((v): v is string => !!v))]; p.requestSave(); hub.navigate("medinter"); } });
 		const legend = out.createEl("details", { cls: "fch-md-det" });
 		legend.createEl("summary", { text: "📖 Singkatan resep" });
@@ -359,33 +417,11 @@ async function diseaseCards(hub: HubView, d: Disease) {
 	if (f) { new Notice(`🃏 Flashcard ${d.name} dibuat di ${path}`); play("chime"); void p.openAt(f.path, 0); }
 }
 
-// ================================================================ 4. PEMERIKSAAN FISIK
-let PFO = "";
-export function openPf(hub: HubView, id: string) { PFO = id; if (hub.page === "medpf") hub.renderPage(); else hub.navigate("medpf"); }
-
-export function renderMedPf(hub: HubView, el: HTMLElement) {
-	const mod = PFO ? PF.find((x) => x.id === PFO) : undefined;
-	if (mod) return pfDetail(hub, el, mod);
-	const head = el.createDiv("fch-dz-head");
-	head.createEl("h2", { text: "🩺 Pemeriksaan Fisik" });
-	head.createDiv({ cls: "fch-small fch-muted", text: "Langkah sistematis per sistem (Macleod 15th ed.) dan daftar keterampilan klinis SKDI 2019." });
-	const grid = el.createDiv("fch-pf-grid");
-	for (const x of PF) {
-		const b = grid.createEl("button", { cls: "fch-pf-card" });
-		b.style.setProperty("--c", x.color);
-		b.createSpan({ cls: "fch-pf-ic", text: x.icon });
-		const t = b.createDiv("fch-grow");
-		t.createDiv({ cls: "fch-strong", text: x.name });
-		t.createDiv({ cls: "fch-small fch-muted", text: `${x.sections.length} bagian · ${x.sections.reduce((a, s) => a + s.steps.length, 0)} langkah` });
-		b.onclick = () => { PFO = x.id; hub.renderPage(); };
-	}
-	disclaimer(el);
-}
-
-function pfDetail(hub: HubView, el: HTMLElement, x: PfModule) {
+// ================================================================ 4. PEMERIKSAAN FISIK — alur per sistem (Macleod); halaman utama ada di med-pfui.ts
+export function pfFlowDetail(hub: HubView, el: HTMLElement, x: PfModule, onBack: () => void) {
 	const p = hub.plugin;
 	const top = el.createDiv("fch-dz-dtop");
-	btn(top, { icon: "arrow-left", text: "Semua sistem", cls: "fch-btn-ghost fch-btn-sm", onClick: () => { PFO = ""; hub.renderPage(); } });
+	btn(top, { icon: "arrow-left", text: "Pemeriksaan fisik", cls: "fch-btn-ghost fch-btn-sm", onClick: onBack });
 	el.createEl("h2", { cls: "fch-dz-title", text: `${x.icon} ${x.name}` });
 	el.createDiv({ cls: "fch-md-p", text: x.intro });
 	const pr = el.createEl("details", { cls: "fch-md-det" });

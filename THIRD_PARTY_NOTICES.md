@@ -28,6 +28,10 @@ Daftar 99 nama mengikuti riwayat Tirmidzi yang masyhur. Nama Arab hanya dipakai 
 
 ## Pustaka
 - **fflate** — MIT — `licenses/LICENSE-fflate-MIT.txt`.
+- **jsPDF** 4.2.1 (ekspor PDF CPPT & resep) — MIT — `licenses/LICENSE-jspdf-4.2.1.txt`. Dibundel bersama dependensinya: **fast-png** 6.4.0 (MIT, `licenses/LICENSE-fast-png-6.4.0.txt`), **iobuffer** 5.4.0 (MIT, `licenses/LICENSE-iobuffer-5.4.0.txt`), **pako** 2.2.0 (MIT AND Zlib, `licenses/LICENSE-pako-2.2.0.txt`), dan **@babel/runtime** 7.29.14 (MIT, `licenses/LICENSE-babel-runtime-7.29.14.txt`). Modul opsional jsPDF (html2canvas, DOMPurify, canvg) tidak dibundel dan tidak dipakai.
+
+## Materi medis
+Materi penyakit, obat, pemeriksaan fisik, dan CPPT ditulis ulang dengan bahasa sendiri dari referensi standar (SKDI 2019 KKI, PNPK/PPK Kemenkes, Macleod's Clinical Examination, Bates' Guide, CMDT, BNF). Daftar kompetensi & keterampilan klinis mengikuti SKDI 2019 (Konsil Kedokteran Indonesia). Tidak ada teks yang disalin utuh.
 
 ## Audio murattal
 Tidak dibundel. Saat diminta pengguna, plugin memutar MP3 langsung dari `everyayah.com`.

@@ -2,6 +2,41 @@
 
 Catatan perubahan setiap versi, dari yang terbaru.
 
+## 22.0.0 — Medis baru: tampilan interaktif, pemeriksaan fisik lengkap SKDI, CPPT + ekspor PDF
+
+### 🏠 Beranda Medis (baru)
+- Satu pintu untuk **Penyakit, Obat, Pemeriksaan fisik, CPPT** dan alat klinis, dengan **pencarian universal** (penyakit, obat, materi PF, alat, pasien CPPT sekaligus; Enter membuka hasil teratas).
+- Ubin utama dengan ringkasan (favorit, materi PF dikuasai, pasien aktif), 8 alat cepat, **Lanjutkan** (penyakit/obat/PF terakhir), **Kartu hari ini** yang bisa dibalik (penyakit, obat, pemeriksaan), dan daftar pasien CPPT aktif.
+- Database obat pindah ke halaman sendiri **Obat**; semua tautan "buka obat" ikut diperbarui.
+
+### 🩺 Penyakit & obat — lebih simpel dan interaktif
+- Daftar penyakit dengan **chip** (mode, sistem berwarna + jumlah, tingkat SKDI), tombol hapus pencarian, **Acak**, dan riwayat "Terakhir dibuka".
+- Halaman penyakit baru: kepala berwarna sesuai sistem, **kartu sekilas** (intinya, klinis kunci, diagnosis, terapi utama, rujuk bila), tab menempel saat menggulir, isi dalam **akordeon** (buka/tutup semua), **Mode hafalan** (butir disamarkan, ketuk untuk membuka), tombol **sebelumnya/berikutnya** dalam satu sistem, dan **Pakai di CPPT**.
+- Halaman obat kini menampilkan kartu sekilas: indikasi utama, dosis dewasa, dosis anak, kehamilan, kontraindikasi.
+
+### 🫀 Pemeriksaan fisik lengkap sesuai SKDI 2019
+- **105 materi** yang mencakup **286 keterampilan klinis** pemeriksaan fisik SKDI 2019 (Lampiran 3) di 13 kelompok: umum & tanda vital, neurologi, psikiatri, mata, THT & leher, respirasi, kardiovaskular, abdomen & urologi, reproduksi & obstetri, muskuloskeletal, kulit, anak & neonatus, dan forensik — **584 langkah** dan **557 temuan abnormal beserta maknanya**.
+- Setiap materi: tujuan, alat, persiapan, langkah dengan cara melakukan, temuan normal, temuan abnormal → makna klinis, **templat dokumentasi rekam medis**, poin kritis OSCE, tips, keterampilan SKDI yang dicakup (dengan tingkatnya), penyakit terkait, dan tautan ke alur head-to-toe.
+- Interaktif: **checklist langkah** dengan progres, tanda "dikuasai", **Mode OSCE** (ingat-ungkap, nilai diri, timer, skor & rekor), **kartu temuan yang bisa dibalik**, **kuis temuan** pilihan ganda, dokumentasi yang bisa diedit/salin/**kirim ke CPPT**.
+- Daftar lengkap keterampilan SKDI → materi, saring per kelompok/tingkat/status, "Latihan hari ini", dan **OSCE acak**. Modul alur per sistem (Macleod) tetap ada.
+
+### 📋 CPPT — Catatan Perkembangan Pasien Terintegrasi (dokter, SOAP)
+- Daftar pasien (aktif/selesai), identitas lengkap (No. RM, tanggal lahir → umur otomatis, ruang, DPJP, **alergi** yang selalu tampil merah).
+- Catatan SOAP dengan **tanda vital terstruktur** (TD, nadi, RR, suhu, SpO₂, GCS, nyeri, BB, GDS — nilai abnormal ditandai), templat cepat S/O/instruksi, **pemilih diagnosis + ICD-10** dari database penyakit, **sisip resep** standar dengan dosis menyesuaikan umur & BB pasien, dan **peringatan alergi** bila obat dalam resep cocok dengan alergi pasien (termasuk golongan penisilin/sulfa/OAINS).
+- **Lanjutkan dari catatan terakhir** (salin S/O/A/P), edit, salin teks, hapus dengan konfirmasi dua ketuk, **grafik tren tanda vital**, garis waktu per hari.
+- **Ekspor PDF** format formulir CPPT (kop fasilitas, identitas pasien, tabel Tgl/Jam · PPA · SOAP · Instruksi · Verifikasi DPJP, tanda tangan, nomor halaman) ke folder `CPPT/`, serta ekspor **Markdown**.
+- Isian dari penyakit (diagnosis), pemeriksaan fisik (O), dan resep (A + P) dapat dikirim langsung ke CPPT.
+- Data pasien disimpan di data plugin pada perangkat (bukan catatan vault) dan tidak pernah ikut diunggah.
+
+### 🧾 Resep → PDF
+- Resep per penyakit dan resep kalkulator dosis dapat **diekspor ke PDF** (A5, kop dokter, R/ + signa, paraf, Pro/Umur/BB/Alamat) ke folder `Medis/Resep/`.
+
+### 📱 Tampilan
+- Semua halaman Medis baru responsif untuk HP dan laptop, mengikuti tema Modern/Retro/Lounge.
+
+### 📦 Pustaka
+- Menambahkan **jsPDF 4.2.1** (MIT) untuk ekspor PDF; lisensi pustaka yang dibundel ada di `licenses/` dan `THIRD_PARTY_NOTICES.md`.
+
 ## 21.0.0 — Materi lengkap untuk SEMUA penyakit SKDI, resep menyesuaikan BB & usia, edukasi pasien
 
 ### 🩺 Seluruh penyakit kini punya materi lengkap

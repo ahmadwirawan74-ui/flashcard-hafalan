@@ -6,7 +6,7 @@ export interface PfStep { t: string; how?: string }
 export interface PfSection { title: string; steps: PfStep[]; abn?: [string, string][] }
 export interface PfModule { id: string; name: string; icon: string; color: string; skdi: string; src: string; intro: string; prep: string[]; sections: PfSection[]; pearls?: string[] }
 
-const PREP = ["Perkenalkan diri, konfirmasi identitas pasien, jelaskan tujuan & minta izin (informed consent lisan).", "Cuci tangan (6 langkah WHO) sebelum dan sesudah memeriksa.", "Tawarkan pendamping (chaperone) untuk pemeriksaan area sensitif.", "Jaga privasi, posisi & pencahayaan yang baik; buka area yang diperiksa secukupnya.", "Tanyakan apakah ada nyeri sebelum menyentuh."];
+export const PREP = ["Perkenalkan diri, konfirmasi identitas pasien, jelaskan tujuan & minta izin (informed consent lisan).", "Cuci tangan (6 langkah WHO) sebelum dan sesudah memeriksa.", "Tawarkan pendamping (chaperone) untuk pemeriksaan area sensitif.", "Jaga privasi, posisi & pencahayaan yang baik; buka area yang diperiksa secukupnya.", "Tanyakan apakah ada nyeri sebelum menyentuh."];
 
 export const PF: PfModule[] = [
 	{

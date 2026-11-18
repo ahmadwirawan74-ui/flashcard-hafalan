@@ -33,10 +33,10 @@ Ada tiga cara. Pilih **satu** saja:
 
 1. Unduh dan pasang [GitHub Desktop](https://desktop.github.com), lalu masuk dengan akun `ahmadwirawan74-ui`.
 2. **File → Clone repository** → pilih `ahmadwirawan74-ui/flashcard-hafalan` → tentukan lokasi (mis. `Documents\GitHub`) → **Clone**. Akan terbentuk folder kosong `flashcard-hafalan`.
-3. Ekstrak `flashcard-hafalan-untuk-github-v21.0.zip`. Buka folder **`flashcard-hafalan-github`**, pilih **semua isinya** (Ctrl+A / Cmd+A), lalu salin ke folder `flashcard-hafalan` hasil clone tadi.
+3. Ekstrak `flashcard-hafalan-untuk-github-v22.0.zip`. Buka folder **`flashcard-hafalan-github`**, pilih **semua isinya** (Ctrl+A / Cmd+A), lalu salin ke folder `flashcard-hafalan` hasil clone tadi.
    - Windows: aktifkan *View → Show → Hidden items* agar `.github`, `.gitignore`, `.npmrc`, `.editorconfig` ikut tersalin.
    - macOS: tekan **Cmd+Shift+.** untuk menampilkan file tersembunyi.
-4. Kembali ke GitHub Desktop. Di kolom kiri akan tampil ±147 file berubah. Di **Summary** tulis `Rilis 21.0.0` → **Commit to main** → **Push origin**.
+4. Kembali ke GitHub Desktop. Di kolom kiri akan tampil ±147 file berubah. Di **Summary** tulis `Rilis 22.0.0` → **Commit to main** → **Push origin**.
 5. Lanjut ke **Langkah 2 — Buat Release**.
 
 ---
@@ -48,12 +48,12 @@ GitHub di browser menolak lebih dari 100 file sekaligus, sedangkan folder ini be
 **Tahap 1: semua kecuali folder `src`**
 1. Di halaman repo yang masih kosong, klik **uploading an existing file**.
 2. Buka folder `flashcard-hafalan-github`, pilih **semua isinya kecuali folder `src`**, lalu seret ke browser.
-3. Tulis pesan `Rilis 21.0.0 (bagian 1)` → **Commit changes**.
+3. Tulis pesan `Rilis 22.0.0 (bagian 1)` → **Commit changes**.
 
 **Tahap 2: folder `src`**
 1. Di halaman repo, klik **Add file → Upload files**.
 2. Seret **folder `src`** (foldernya, bukan isinya) ke browser.
-3. Pesan `Rilis 21.0.0 (bagian 2)` → **Commit changes**.
+3. Pesan `Rilis 22.0.0 (bagian 2)` → **Commit changes**.
 
 > Folder `src` berisi 99 file, tepat di bawah batas 100. Bila suatu saat GitHub menolak, unggah dulu isi `src` **kecuali** folder `src/pages`, lalu unggah folder `pages` di dalam `src` sebagai tahap ketiga.
 
@@ -82,13 +82,13 @@ Lalu di folder hasil ekstrak:
 cd flashcard-hafalan-github
 git init -b main
 git add .
-git commit -m "Rilis Flashcard Hafalan 21.0.0"
+git commit -m "Rilis Flashcard Hafalan 22.0.0"
 git remote add origin https://github.com/ahmadwirawan74-ui/flashcard-hafalan.git
 git push -u origin main
 
 # rilis otomatis lewat GitHub Actions
-git tag 21.0.0
-git push origin 21.0.0
+git tag 22.0.0
+git push origin 22.0.0
 ```
 
 Saat diminta *password*, GitHub tidak menerima kata sandi akun. Gunakan **Personal Access Token**: **Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token**, centang `repo` dan `workflow`, salin token, lalu tempel sebagai password.
@@ -103,17 +103,17 @@ Obsidian dan BRAT memasang plugin dari **Release**, bukan dari kode. Pilih salah
 
 ### Pilihan manual (paling pasti)
 1. Di repo, klik **Releases** (kolom kanan) → **Create a new release**.
-2. **Choose a tag:** ketik `21.0.0` → klik **Create new tag: 21.0.0 on publish**. Tulis **tanpa huruf `v`**, dan harus sama dengan `"version"` di `manifest.json`.
-3. **Release title:** `21.0.0`.
-4. **Description:** salin bagian `## 21.0.0` dari `CHANGELOG.md` (opsional).
+2. **Choose a tag:** ketik `22.0.0` → klik **Create new tag: 22.0.0 on publish**. Tulis **tanpa huruf `v`**, dan harus sama dengan `"version"` di `manifest.json`.
+3. **Release title:** `22.0.0`.
+4. **Description:** salin bagian `## 22.0.0` dari `CHANGELOG.md` (opsional).
 5. Di kotak **Attach binaries**, seret **tiga file** ini:
-   - `main.js` dari folder `rilis-21.0.0`
-   - `styles.css` dari folder `rilis-21.0.0`
+   - `main.js` dari folder `rilis-22.0.0`
+   - `styles.css` dari folder `rilis-22.0.0`
    - `manifest.json` dari folder `flashcard-hafalan-github`
 6. Klik **Publish release**. 🎉
 
 ### Pilihan otomatis (GitHub Actions)
-Bila folder `.github` sudah ada di repo, cukup buat tag `21.0.0` (lewat Cara C, atau lewat halaman *Create a new release* tanpa melampirkan file lalu **Publish**). Buka tab **Actions** dan tunggu ±1–2 menit sampai workflow **Rilis plugin** berwarna hijau. Release akan berisi `main.js`, `manifest.json`, dan `styles.css`.
+Bila folder `.github` sudah ada di repo, cukup buat tag `22.0.0` (lewat Cara C, atau lewat halaman *Create a new release* tanpa melampirkan file lalu **Publish**). Buka tab **Actions** dan tunggu ±1–2 menit sampai workflow **Rilis plugin** berwarna hijau. Release akan berisi `main.js`, `manifest.json`, dan `styles.css`.
 
 > **Actions gagal karena izin?** Buka **Settings → Actions → General → Workflow permissions** → pilih **Read and write permissions** → **Save**, lalu buka tab Actions → workflow yang gagal → **Re-run all jobs**.
 >
@@ -139,8 +139,8 @@ Bila folder `.github` sudah ada di repo, cukup buat tag `21.0.0` (lewat Cara C, 
 - [ ] Repo publik di `github.com/ahmadwirawan74-ui/flashcard-hafalan`
 - [ ] Folder `.github/workflows` terlihat di repo
 - [ ] Tab **Actions** → workflow **Build** hijau ✅
-- [ ] Ada Release `21.0.0` berisi `main.js`, `manifest.json`, `styles.css`
-- [ ] Lencana versi di README menampilkan `21.0.0` (bisa butuh beberapa menit)
+- [ ] Ada Release `22.0.0` berisi `main.js`, `manifest.json`, `styles.css`
+- [ ] Lencana versi di README menampilkan `22.0.0` (bisa butuh beberapa menit)
 - [ ] Plugin terpasang lewat BRAT di vault uji
 - [ ] Tidak ada `data.json` di repo
 
@@ -151,7 +151,7 @@ Bila folder `.github` sudah ada di repo, cukup buat tag `21.0.0` (lewat Cara C, 
 **Dengan Git & Node.js** (otomatis):
 ```bash
 npm install                 # sekali saja
-npm version patch           # 21.0.0 → 21.0.1  (minor: 21.1.0, major: 22.0.0)
+npm version patch           # 22.0.0 → 22.0.1  (minor: 22.1.0, major: 23.0.0)
 git push && git push --tags # Actions membuat Release otomatis
 ```
 Perintah `npm version` sekaligus memperbarui `manifest.json` dan `versions.json`, membuat commit, dan membuat tag (tanpa huruf `v`, sesuai syarat Obsidian).
